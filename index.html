@@ -162,6 +162,7 @@
       color: var(--black);
       line-height: 1.6;
       overflow-x: clip;
+      overscroll-behavior-y: none;
     }
 
     img { max-width: 100%; height: auto; display: block; }
@@ -1484,6 +1485,38 @@
       if (descEl) descEl.textContent = val;
     });
     initReadMore();
+  });
+
+  // SERVICE CARD → FORM
+  const svcLabelMap = {
+    sedalki:  'Пране на седалки',
+    moket:    'Пране на мокет',
+    bagajnik: 'Почистване на багажник',
+    stelki:   'Пране на стелки'
+  };
+
+  function pickService(value) {
+    const sel = document.getElementById('f-svc');
+    if (!sel) return;
+    const exists = Array.from(sel.options).some(o => o.value === value);
+    if (!exists) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = value;
+      sel.appendChild(opt);
+    }
+    sel.value = value;
+  }
+
+  document.querySelectorAll('.svc-card').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', e => {
+      if (e.target.closest('.svc-read-more')) return;
+      const key   = card.dataset.svc;
+      const label = svcLabelMap[key] || card.querySelector('.svc-name')?.textContent?.trim();
+      if (label) pickService(label);
+      document.getElementById('contact').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => document.getElementById('f-name')?.focus(), 500);
+    });
   });
 </script>
 
