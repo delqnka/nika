@@ -1306,8 +1306,16 @@
   window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 40), { passive: true });
 
 
-  // iOS :active fix — makes non-interactive elements respond to :active on touch
-  document.addEventListener('touchstart', function(){}, {passive: true});
+  // iOS :active fix + track touch start for horizontal lock
+  let _tsx = 0, _tsy = 0;
+  document.addEventListener('touchstart', function(e){ _tsx = e.touches[0].clientX; _tsy = e.touches[0].clientY; }, {passive: true});
+
+  // Block horizontal rubber-band bounce on iOS Safari
+  document.addEventListener('touchmove', function(e) {
+    const dx = Math.abs(e.touches[0].clientX - _tsx);
+    const dy = Math.abs(e.touches[0].clientY - _tsy);
+    if (dx > dy && dx > 4) e.preventDefault();
+  }, { passive: false });
 
   // VIDEO THUMBNAILS
   document.querySelectorAll('.vid-item').forEach(item => {
