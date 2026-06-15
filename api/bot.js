@@ -152,6 +152,29 @@ module.exports = async function handler(req, res) {
       await reply(`✅ Цената е обновена!\n<b>${svcRaw}</b>: ${eur} € (≈ ${bgn} лв.)\n\nСайтът се обновява след ~1 мин.`);
     }
 
+    // /нова_услуга Наименование | 60 | Описание
+    else if (/^\/(нова_услуга|nova_usluga)/i.test(text)) {
+      const body = text.replace(/^\/(нова_услуга|nova_usluga)\s*/i, '');
+      const parts = body.split('|').map(s => s.trim());
+      const name = parts[0];
+      const price = parseFloat(parts[1]);
+      const desc = parts.slice(2).join('|').trim();
+
+      if (!name || isNaN(price)) {
+        await reply('⚠️ Формат:\n/нова_услуга Наименование | 60 | Описание на услугата\n\nПример:\n/нова_услуга Полиране | 80 | Защитно полиране на купето.');
+        return res.status(200).json({ ok: true });
+      }
+
+      const id = 'svc_' + Date.now();
+      const bgn = Math.round(price * 1.95583);
+      const file = await ghGet(GH, 'services.json');
+      const services = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
+      services.push({ id, name, price, desc });
+
+      await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), file.sha, `Add service: ${name}`);
+      await reply(`✅ Услугата е добавена!\n<b>${name}</b> — ${price} € (≈ ${bgn} лв.)\nСайтът се обновява след ~1 мин.`);
+    }
+
     // /описание [услуга] | [текст]
     else if (/^\/(описание|opisanie)/i.test(text)) {
       const body = text.replace(/^\/(описание|opisanie)\s*/i, '');
@@ -235,6 +258,7 @@ module.exports = async function handler(req, res) {
         '📝 <b>Отзив:</b>\n/отзив Иван И. | Страхотна работа!\n\n' +
         '💰 <b>Цена (в евро):</b>\n/цена седалки | 50\n/цена мокет | 40\n\n' +
         '✏️ <b>Описание:</b>\n/описание седалки | Нов текст...\n\n' +
+        '➕ <b>Нова услуга:</b>\n/нова_услуга Полиране | 80 | Описание...\n\n' +
         '📸 <b>Качи снимка:</b>\nИзпрати снимка директно\n\n' +
         '📂 <b>Виж снимките:</b>\n/галерия\n\n' +
         '🗑 <b>Изтрий снимка:</b>\n/изтрий 1\n\n' +

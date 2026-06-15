@@ -316,6 +316,7 @@
       -webkit-mask-composite: xor; mask-composite: exclude;
     }
     .btn-grad:hover::before { animation-duration: 1.5s; }
+    .svc-photo-placeholder { background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-100) 100%); }
     .svc-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
     .svc-title-row .svc-name { flex: 1; }
     .svc-price { display: none; flex-direction: column; align-items: flex-end; flex-shrink: 0; padding-top: .1rem; }
@@ -543,15 +544,15 @@
     .rev-name { font-size: .875rem; font-weight: 700; color: var(--black); }
     .rev-date { font-size: .75rem; color: var(--gray-400); margin-top: .1rem; }
     @media (max-width: 640px) {
-      .rev-card { padding: .75rem 1rem; }
-      .rev-text { font-size: .75rem; line-height: 1.5; margin-bottom: .625rem; }
-      .rev-av { width: 26px; height: 26px; font-size: .6875rem; }
-      .rev-name { font-size: .75rem; }
+      .rev-card { padding: 1.25rem; }
+      .rev-text { font-size: .875rem; line-height: 1.6; margin-bottom: 1rem; }
+      .rev-av { width: 34px; height: 34px; font-size: .8125rem; }
+      .rev-name { font-size: .8125rem; }
       .rev-date { font-size: .6875rem; }
-      .star { width: 12px; height: 12px; }
-      .stars { margin-bottom: .375rem; gap: 2px; }
-      .rev-author { gap: .5rem; }
-      .rev-grid { gap: .625rem; }
+      .star { width: 15px; height: 15px; }
+      .stars { margin-bottom: .5rem; gap: 2px; }
+      .rev-author { gap: .625rem; }
+      .rev-grid { gap: .75rem; }
     }
     .g-badge {
       display: inline-flex; align-items: center; gap: .5rem;
@@ -1436,9 +1437,31 @@
 
   Promise.all([
     fetch('/prices.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
-    fetch('/descriptions.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; })
+    fetch('/descriptions.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
+    fetch('/services.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
   ]).then(function(results) {
-    var prices = results[0], descs = results[1];
+    var prices = results[0], descs = results[1], extraSvcs = results[2];
+
+    if (extraSvcs && extraSvcs.length) {
+      var grid = document.querySelector('.svc-grid');
+      extraSvcs.forEach(function(svc) {
+        var eur = Number(svc.price) || 0;
+        var bgn = Math.round(eur * 1.95583);
+        var priceHtml = eur ? '<div class="svc-price has-price"><span class="svc-price-eur">' + eur + ' €</span><span class="svc-price-bgn">≈ ' + bgn + ' лв.</span></div>' : '<div class="svc-price"></div>';
+        var article = document.createElement('article');
+        article.className = 'svc-card rev';
+        article.setAttribute('role', 'listitem');
+        article.setAttribute('data-svc', svc.id);
+        article.innerHTML =
+          '<div class="svc-photo svc-photo-placeholder"></div>' +
+          '<div class="svc-body">' +
+            '<div class="svc-title-row"><h3 class="svc-name">' + svc.name + '</h3>' + priceHtml + '</div>' +
+            '<p class="svc-desc" data-svc-desc="' + svc.id + '">' + (svc.desc || '') + '</p>' +
+            '<button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button>' +
+          '</div>';
+        grid.appendChild(article);
+      });
+    }
     Object.entries(prices).forEach(function([key, val]) {
       if (!val) return;
       var priceEl = document.querySelector('[data-svc="' + key + '"] .svc-price');
