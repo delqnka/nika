@@ -20,6 +20,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="KOZR LAB — Пране на автомобилен интериор Варна">
+  <meta property="og:image:type" content="image/jpeg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="KOZR LAB | Пране на седалки и детайлинг Варна">
   <meta name="twitter:description" content="Професионално пране на автомобилен интериор в Варна. Идваме при вас.">
@@ -36,7 +37,7 @@
   [
     {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
+      "@type": ["LocalBusiness", "AutoWash"],
       "@id": "https://kozrlab.bg/#business",
       "name": "KOZR LAB",
       "url": "https://kozrlab.bg/",
@@ -44,10 +45,18 @@
       "image": "https://kozrlab.bg/background-nika.jpeg",
       "description": "Професионално пране на автомобилни седалки, тапицерия, мокет, стелки и багажник в Варна. Идваме при вас с пълно оборудване.",
       "telephone": "+359889232706",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+359889232706",
+        "contactType": "customer service",
+        "availableLanguage": "Bulgarian",
+        "areaServed": "BG"
+      },
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Варна",
         "addressRegion": "Варна",
+        "postalCode": "9000",
         "addressCountry": "BG"
       },
       "geo": {
@@ -55,7 +64,15 @@
         "latitude": "43.2141",
         "longitude": "27.9147"
       },
-      "areaServed": {"@type": "City", "name": "Варна"},
+      "areaServed": [
+        {"@type": "City", "name": "Варна"},
+        {"@type": "City", "name": "Аксаково"},
+        {"@type": "City", "name": "Белослав"},
+        {"@type": "City", "name": "Девня"},
+        {"@type": "City", "name": "Провадия"}
+      ],
+      "currenciesAccepted": "BGN",
+      "paymentAccepted": "Cash, Bank Transfer",
       "serviceType": "Автомобилен детайлинг",
       "hasOfferCatalog": {
         "@type": "OfferCatalog",
@@ -72,10 +89,10 @@
       ],
       "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5", "reviewCount": "4", "bestRating": "5"},
       "review": [
-        {"@type": "Review", "author": {"@type": "Person", "name": "Анелия Методиева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Страхотна работа! Много коректно и професионално отношение, комбинирано с отличен резултат!"},
-        {"@type": "Review", "author": {"@type": "Person", "name": "Виктор Дончев"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Препоръчвам!! Момичето дойде на място, работи бързо, достъпна цена."},
-        {"@type": "Review", "author": {"@type": "Person", "name": "Евгения Лечева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Много съм доволна от резултата! Горещо препоръчвам!"},
-        {"@type": "Review", "author": {"@type": "Person", "name": "D. Nikolova"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Аз и моята кола сме много доволни от прецизното почистване! Упоритата следа от инцидент с айрян на седалката ми вече я няма. Благодаря и за страхотното отношение."}
+        {"@type": "Review", "datePublished": "2025-06-01", "author": {"@type": "Person", "name": "Анелия Методиева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Страхотна работа! Много коректно и професионално отношение, комбинирано с отличен резултат!"},
+        {"@type": "Review", "datePublished": "2025-05-20", "author": {"@type": "Person", "name": "Виктор Дончев"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Препоръчвам!! Момичето дойде на място, работи бързо, достъпна цена."},
+        {"@type": "Review", "datePublished": "2025-05-18", "author": {"@type": "Person", "name": "Евгения Лечева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Много съм доволна от резултата! Горещо препоръчвам!"},
+        {"@type": "Review", "datePublished": "2025-06-15", "author": {"@type": "Person", "name": "D. Nikolova"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Аз и моята кола сме много доволни от прецизното почистване! Упоритата следа от инцидент с айрян на седалката ми вече я няма. Благодаря и за страхотното отношение."}
       ],
       "priceRange": "$$",
       "sameAs": ["https://www.facebook.com/people/KOZR-LAB-Interior-Detailing-Varna/61574368934697/","https://www.instagram.com/kozr.lab/"]
