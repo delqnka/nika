@@ -147,6 +147,14 @@
 
     html { font-size: 16px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
+    /* Custom car cursor — desktop only */
+    @media (pointer: fine) {
+      html, a, button, [role=button], label, summary, [onclick] {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='22' viewBox='0 0 40 22'%3E%3Cpath d='M0 15V11L6 5h10l6-2h5l8 4 5 4v4H0z' fill='white' stroke='black' stroke-width='1.2' stroke-linejoin='round'/%3E%3Cpath d='M8 11L11 5h12l3 6z' fill='%23cce8ff' stroke='black' stroke-width='.8'/%3E%3Ccircle cx='9' cy='17' r='3.5' fill='black' stroke='white' stroke-width='1.2'/%3E%3Ccircle cx='31' cy='17' r='3.5' fill='black' stroke='white' stroke-width='1.2'/%3E%3Crect x='33' y='8' width='5' height='3' rx='1' fill='%23ffe566'/%3E%3C/svg%3E") 0 11, auto;
+      }
+      input, textarea, select { cursor: text; }
+    }
+
     body {
       font-family: var(--font);
       background: var(--white);
@@ -512,6 +520,10 @@
     }
     @media (max-width: 600px) {
       .vid-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (min-width: 769px) {
+      #vidRow .vid-item:nth-child(3),
+      #vidRow .vid-item:nth-child(4) { display: block !important; }
     }
 
     /* REVIEWS */
