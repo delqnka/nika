@@ -25,6 +25,22 @@ async function ghPut(ghToken, path, content, sha, message) {
   });
 }
 
+async function ghDelete(ghToken, path, sha, message) {
+  await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, sha })
+  });
+}
+
+async function listGalleryFiles(ghToken) {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/`, {
+    headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' }
+  });
+  const all = await res.json();
+  return Array.isArray(all) ? all.filter(f => f.name.startsWith('gallery_') && f.type === 'file') : [];
+}
+
 function buildReviewCard(author, text) {
   const initial = [...author][0].toUpperCase();
   const stars = Array(5).fill(STAR).join('\n            ');
@@ -49,8 +65,8 @@ function buildReviewCard(author, text) {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).json({ ok: true });
 
-  const BOT = process.env.TELEGRAM_TOKEN;
-  const GH  = process.env.GITHUB_TOKEN;
+  const BOT     = process.env.TELEGRAM_TOKEN;
+  const GH      = process.env.GITHUB_TOKEN;
   const ALLOWED = Number(process.env.ALLOWED_CHAT_ID);
 
   const msg = req.body?.message;
@@ -67,6 +83,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+
     // /отзив Иван И. | Страхотен резултат!
     if (/^\/(отзив|otziv)/i.test(text)) {
       const body = text.replace(/^\/(отзив|otziv)\s*/i, '');
@@ -92,23 +109,55 @@ module.exports = async function handler(req, res) {
 
     // Снимка
     else if (msg.photo) {
-      const photo  = msg.photo[msg.photo.length - 1];
+      const photo    = msg.photo[msg.photo.length - 1];
       const fileInfo = await tg(BOT, 'getFile', { file_id: photo.file_id });
-      const imgUrl = `https://api.telegram.org/file/bot${BOT}/${fileInfo.result.file_path}`;
-      const imgBuf = Buffer.from(await (await fetch(imgUrl)).arrayBuffer());
+      const imgUrl   = `https://api.telegram.org/file/bot${BOT}/${fileInfo.result.file_path}`;
+      const imgBuf   = Buffer.from(await (await fetch(imgUrl)).arrayBuffer());
       const filename = `gallery_${Date.now()}.jpg`;
 
       await ghPut(GH, filename, imgBuf, null, `Upload gallery image ${filename}`);
-      await reply(`✅ Снимката е качена!\n📁 ${filename}\n\nПиши ми ако искаш да я добавим в галерията на сайта.`);
+      await reply(`✅ Снимката е качена!\n📁 <code>${filename}</code>\n\nЗа да видиш всички снимки: /галерия\nЗа да изтриеш: /изтрий [число]`);
     }
 
-    // Видео
+    // /галерия — списък с всички качени снимки
+    else if (/^\/(галерия|galeriya)/i.test(text)) {
+      const files = await listGalleryFiles(GH);
+      if (files.length === 0) {
+        await reply('📂 Няма качени снимки засега.');
+      } else {
+        const list = files.map((f, i) => `${i + 1}. <code>${f.name}</code>`).join('\n');
+        await reply(`📸 <b>Качени снимки (${files.length}):</b>\n\n${list}\n\nЗа да изтриеш: /изтрий 1`);
+      }
+    }
+
+    // /изтрий 2 — изтрива снимка по номер
+    else if (/^\/(изтрий|iztrii)/i.test(text)) {
+      const num = parseInt(text.replace(/^\/(изтрий|iztrii)\s*/i, '').trim());
+
+      if (isNaN(num)) {
+        await reply('⚠️ Пиши номера на снимката:\n/изтрий 1\n\nВиж списъка с /галерия');
+        return res.status(200).json({ ok: true });
+      }
+
+      const files = await listGalleryFiles(GH);
+      const file  = files[num - 1];
+
+      if (!file) {
+        await reply(`❌ Няма снимка с номер ${num}. Виж списъка с /галерия`);
+        return res.status(200).json({ ok: true });
+      }
+
+      await ghDelete(GH, file.name, file.sha, `Delete gallery image ${file.name}`);
+      await reply(`🗑 Снимка <code>${file.name}</code> е изтрита.\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // Видео файл
     else if (msg.video) {
-      await reply('📹 За видео изпрати YouTube линк с командата:\n/видео https://youtube.com/... | Описание');
+      await reply('📹 За видео изпрати YouTube линк:\n/видео https://youtube.com/... | Описание');
     }
 
     else if (/^\/(видео|video)/i.test(text)) {
-      const body  = text.replace(/^\/(видео|video)\s*/i, '');
+      const body = text.replace(/^\/(видео|video)\s*/i, '');
       const [url, ...rest] = body.split('|').map(s => s.trim());
       const desc = rest.join('|').trim() || 'Видео';
 
@@ -117,14 +166,16 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
-      await reply(`✅ Получих видеото!\nURL: ${url}\nОписание: ${desc}\n\nЩе го добавя в сайта скоро — функцията идва в следващата версия.`);
+      await reply(`✅ Получих!\nURL: ${url}\nОписание: ${desc}\n\nФункцията за видео в сайта идва скоро.`);
     }
 
     else if (/^\/(start|help|старт|помощ)/i.test(text)) {
       await reply(
         '🔧 <b>Команди за сайта:</b>\n\n' +
         '📝 <b>Отзив:</b>\n/отзив Иван И. | Страхотна работа!\n\n' +
-        '📸 <b>Снимка:</b>\nИзпрати снимка директно\n\n' +
+        '📸 <b>Качи снимка:</b>\nИзпрати снимка директно\n\n' +
+        '📂 <b>Виж снимките:</b>\n/галерия\n\n' +
+        '🗑 <b>Изтрий снимка:</b>\n/изтрий 1\n\n' +
         '📹 <b>Видео:</b>\n/видео https://youtube.com/... | Описание'
       );
     }
