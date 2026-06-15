@@ -119,6 +119,37 @@ module.exports = async function handler(req, res) {
       await reply(`✅ Снимката е качена!\n📁 <code>${filename}</code>\n\nЗа да видиш всички снимки: /галерия\nЗа да изтриеш: /изтрий [число]`);
     }
 
+    // /цена [услуга] | [цена]
+    else if (/^\/(цена|cena)/i.test(text)) {
+      const body = text.replace(/^\/(цена|cena)\s*/i, '');
+      const [svcRaw, ...rest] = body.split('|').map(s => s.trim());
+      const price = rest.join('|').trim();
+
+      const map = {
+        'седалки': 'sedalki', 'sedalki': 'sedalki',
+        'мокет': 'moket', 'moket': 'moket',
+        'багажник': 'bagajnik', 'bagajnik': 'bagajnik',
+        'стелки': 'stelki', 'stelki': 'stelki'
+      };
+      const key = map[svcRaw?.toLowerCase()];
+
+      if (!key || !price) {
+        await reply(
+          '⚠️ Формат: /цена [услуга] | [цена]\n\n' +
+          'Услуги: седалки, мокет, багажник, стелки\n\n' +
+          'Пример:\n/цена седалки | от 80 лв.\n/цена мокет | от 40 лв.'
+        );
+        return res.status(200).json({ ok: true });
+      }
+
+      const file = await ghGet(GH, 'prices.json');
+      const prices = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
+      prices[key] = price;
+
+      await ghPut(GH, 'prices.json', JSON.stringify(prices, null, 2), file.sha, `Update price: ${svcRaw} = ${price}`);
+      await reply(`✅ Цената е обновена!\n<b>${svcRaw}</b>: ${price}\n\nСайтът се обновява след ~1 мин.`);
+    }
+
     // /галерия — списък с всички качени снимки
     else if (/^\/(галерия|galeriya)/i.test(text)) {
       const files = await listGalleryFiles(GH);
@@ -173,6 +204,7 @@ module.exports = async function handler(req, res) {
       await reply(
         '🔧 <b>Команди за сайта:</b>\n\n' +
         '📝 <b>Отзив:</b>\n/отзив Иван И. | Страхотна работа!\n\n' +
+        '💰 <b>Цена на услуга:</b>\n/цена седалки | от 80 лв.\n/цена мокет | от 40 лв.\n/цена багажник | от 30 лв.\n/цена стелки | от 25 лв.\n\n' +
         '📸 <b>Качи снимка:</b>\nИзпрати снимка директно\n\n' +
         '📂 <b>Виж снимките:</b>\n/галерия\n\n' +
         '🗑 <b>Изтрий снимка:</b>\n/изтрий 1\n\n' +

@@ -303,6 +303,23 @@
       padding: .5rem 1.125rem; font-size: .8125rem; min-height: 38px;
       border-width: 1px;
     }
+    @keyframes gradMove { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+    .btn-grad {
+      background: linear-gradient(90deg,#f472b6,#818cf8,#38bdf8,#34d399,#fbbf24,#f472b6);
+      background-size: 300% 100%;
+      animation: gradMove 3s linear infinite;
+      border-color: transparent !important;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+    .btn-grad:hover { animation-duration: 1.5s; background: linear-gradient(90deg,#f472b6,#818cf8,#38bdf8,#34d399,#fbbf24,#f472b6); background-size: 300% 100%; }
+    .svc-price {
+      display: inline-block; margin-top: .625rem;
+      font-size: .8125rem; font-weight: 700; color: var(--black);
+      background: var(--gray-100); border-radius: 100px;
+      padding: .25rem .75rem;
+    }
+    .svc-price:empty { display: none; }
 
     .hero-stats {
       position: absolute; bottom: 2rem; left: 0; right: 0; z-index: 2;
@@ -721,7 +738,7 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.26h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.85a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
           Свържете се сега
         </a>
-        <a href="#gallery" class="btn-o btn-o-sm">
+        <a href="#gallery" class="btn-o btn-o-sm btn-grad">
           Вижте резултатите
         </a>
       </div>
@@ -754,43 +771,47 @@
 
       <div class="svc-grid" role="list">
 
-        <article class="svc-card rev" role="listitem">
+        <article class="svc-card rev" role="listitem" data-svc="sedalki">
           <div class="svc-photo">
             <img src="sedalki.JPG" alt="Пране на автомобилни седалки" loading="lazy" width="600" height="400">
           </div>
           <div class="svc-body">
             <h3 class="svc-name">Пране на седалки</h3>
             <p class="svc-desc">Дълбоко извличане на замърсявания, петна и алергени от тъканни и кожени седалки.</p>
+            <span class="svc-price"></span>
           </div>
         </article>
 
-        <article class="svc-card rev d1" role="listitem">
+        <article class="svc-card rev d1" role="listitem" data-svc="moket">
           <div class="svc-photo">
             <img src="moket.JPG" alt="Пране на мокет в автомобил" loading="lazy" width="600" height="400" style="object-position: center 20%;">
           </div>
           <div class="svc-body">
             <h3 class="svc-name">Пране на мокет</h3>
             <p class="svc-desc">Пълно почистване на пода на автомобила с резултат като нов.</p>
+            <span class="svc-price"></span>
           </div>
         </article>
 
-        <article class="svc-card rev d2" role="listitem">
+        <article class="svc-card rev d2" role="listitem" data-svc="bagajnik">
           <div class="svc-photo">
             <img src="bagajnik.JPG" alt="Почистване на багажник на автомобил" loading="lazy" width="600" height="400">
           </div>
           <div class="svc-body">
             <h3 class="svc-name">Почистване на багажник</h3>
             <p class="svc-desc">Химическо чистене и освежаване на багажното пространство.</p>
+            <span class="svc-price"></span>
           </div>
         </article>
 
-        <article class="svc-card rev d3" role="listitem">
+        <article class="svc-card rev d3" role="listitem" data-svc="stelki">
           <div class="svc-photo">
             <img src="stelki.JPG" alt="Пране на автомобилни стелки" loading="lazy" width="600" height="400">
           </div>
           <div class="svc-body">
             <h3 class="svc-name">Пране на стелки</h3>
             <p class="svc-desc">Пране и дезинфекция на стелките с премахване на упорити петна.</p>
+            <span class="svc-price"></span>
           </div>
         </article>
 
@@ -1372,6 +1393,18 @@
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.querySelectorAll('.legal-modal.open').forEach(m => closeModal(m.id));
   });
+
+  // PRICES
+  fetch('/prices.json?v=' + Date.now())
+    .then(r => r.json())
+    .then(prices => {
+      Object.entries(prices).forEach(([key, val]) => {
+        if (!val) return;
+        const el = document.querySelector('[data-svc="' + key + '"] .svc-price');
+        if (el) el.textContent = val;
+      });
+    })
+    .catch(() => {});
 </script>
 
 </body>
