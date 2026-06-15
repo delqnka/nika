@@ -152,6 +152,33 @@ module.exports = async function handler(req, res) {
       await reply(`✅ Цената е обновена!\n<b>${svcRaw}</b>: ${eur} € (≈ ${bgn} лв.)\n\nСайтът се обновява след ~1 мин.`);
     }
 
+    // /описание [услуга] | [текст]
+    else if (/^\/(описание|opisanie)/i.test(text)) {
+      const body = text.replace(/^\/(описание|opisanie)\s*/i, '');
+      const [svcRaw, ...rest] = body.split('|').map(s => s.trim());
+      const descText = rest.join('|').trim();
+
+      const map = {
+        'седалки': 'sedalki', 'sedalki': 'sedalki',
+        'мокет': 'moket', 'moket': 'moket',
+        'багажник': 'bagajnik', 'bagajnik': 'bagajnik',
+        'стелки': 'stelki', 'stelki': 'stelki'
+      };
+      const key = map[svcRaw?.toLowerCase()];
+
+      if (!key || !descText) {
+        await reply('⚠️ Формат:\n/описание седалки | Дълбоко почистване на...\n\nУслуги: седалки, мокет, багажник, стелки');
+        return res.status(200).json({ ok: true });
+      }
+
+      const file = await ghGet(GH, 'descriptions.json');
+      const descs = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
+      descs[key] = descText;
+
+      await ghPut(GH, 'descriptions.json', JSON.stringify(descs, null, 2), file.sha, `Update description: ${svcRaw}`);
+      await reply(`✅ Описанието на <b>${svcRaw}</b> е обновено!\nСайтът се обновява след ~1 мин.`);
+    }
+
     // /галерия — списък с всички качени снимки
     else if (/^\/(галерия|galeriya)/i.test(text)) {
       const files = await listGalleryFiles(GH);
@@ -206,7 +233,8 @@ module.exports = async function handler(req, res) {
       await reply(
         '🔧 <b>Команди за сайта:</b>\n\n' +
         '📝 <b>Отзив:</b>\n/отзив Иван И. | Страхотна работа!\n\n' +
-        '💰 <b>Цена (в евро):</b>\n/цена седалки | 50\n/цена мокет | 40\n/цена багажник | 30\n/цена стелки | 25\n\n' +
+        '💰 <b>Цена (в евро):</b>\n/цена седалки | 50\n/цена мокет | 40\n\n' +
+        '✏️ <b>Описание:</b>\n/описание седалки | Нов текст...\n\n' +
         '📸 <b>Качи снимка:</b>\nИзпрати снимка директно\n\n' +
         '📂 <b>Виж снимките:</b>\n/галерия\n\n' +
         '🗑 <b>Изтрий снимка:</b>\n/изтрий 1\n\n' +
