@@ -207,6 +207,9 @@
       transform: scale(1.1); opacity: .5;
       will-change: transform;
     }
+    @media (max-width: 768px) {
+      .hero-bg { transform: none; }
+    }
     .hero-overlay {
       position: absolute; inset: 0;
       background: linear-gradient(to bottom, rgba(10,10,10,.25) 0%, rgba(10,10,10,.05) 45%, rgba(10,10,10,.75) 100%);
@@ -346,8 +349,10 @@
       transition: transform .4s cubic-bezier(.16,1,.3,1);
       border-radius: var(--radius-lg); z-index: 0;
     }
-    .svc-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08); }
-    .svc-card:hover::before { transform: scaleY(1); }
+    @media (hover: hover) {
+      .svc-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08); }
+      .svc-card:hover::before { transform: scaleY(1); }
+    }
     .svc-photo {
       width: 100%; aspect-ratio: 3/2; overflow: hidden;
       position: relative; z-index: 1;
@@ -358,18 +363,20 @@
       transition: background .4s cubic-bezier(.16,1,.3,1);
       pointer-events: none;
     }
-    .svc-card:hover .svc-photo::after { background: transparent; }
+    @media (hover: hover) {
+      .svc-card:hover .svc-photo::after { background: transparent; }
+      .svc-card:hover .svc-photo img { transform: scale(1.08); }
+      .svc-card:hover .svc-name,
+      .svc-card:hover .svc-desc { color: var(--white); }
+    }
     .svc-photo img {
       width: 100%; height: 100%; object-fit: cover; display: block;
       transition: transform .5s cubic-bezier(.16,1,.3,1);
     }
-    .svc-card:hover .svc-photo img { transform: scale(1.18); }
     .svc-body {
       padding: 1.25rem 1.375rem 1.5rem;
       position: relative; z-index: 1;
     }
-    .svc-card:hover .svc-name,
-    .svc-card:hover .svc-desc { color: var(--white); }
     .svc-name {
       font-size: 1.0625rem; font-weight: 700; color: var(--black);
       margin-bottom: .375rem;
@@ -434,7 +441,23 @@
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1rem;
     }
-    .vid-item { border-radius: var(--radius-md); overflow: hidden; background: #111; }
+    .vid-item { border-radius: var(--radius-md); overflow: hidden; background: #1a1a1a; position: relative; }
+    .vid-thumb {
+      position: absolute; inset: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: #1a1a1a; pointer-events: none;
+      transition: opacity .3s;
+    }
+    .vid-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .vid-play-circle {
+      position: absolute;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(255,255,255,.18); backdrop-filter: blur(4px);
+      border: 1.5px solid rgba(255,255,255,.35);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vid-play-circle svg { width: 20px; height: 20px; fill: #fff; margin-left: 3px; }
+    .vid-item.vid-playing .vid-thumb { opacity: 0; }
     .vid {
       width: 100%; aspect-ratio: 9/16; object-fit: cover;
       display: block; border-radius: var(--radius-md);
@@ -818,26 +841,31 @@
         <p style="font-size:.75rem;font-weight:600;letter-spacing:.04em;color:rgba(255,255,255,.45);margin-bottom:1.25rem;">Видео</p>
         <div class="vid-row" id="vidRow">
           <div class="vid-item rev">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване 1">
               <source src="IMG_7769.MOV" type="video/mp4">
             </video>
           </div>
           <div class="vid-item rev d1">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване 2">
               <source src="IMG_7784.MOV" type="video/mp4">
             </video>
           </div>
           <div class="vid-item rev d2 vid-hidden" style="display:none">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване 3">
               <source src="IMG_7936.MOV" type="video/mp4">
             </video>
           </div>
           <div class="vid-item rev d3 vid-hidden" style="display:none">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване 4">
               <source src="IMG_7937.MOV" type="video/mp4">
             </video>
           </div>
           <div class="vid-item rev d4 vid-hidden" style="display:none">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване 5">
               <source src="IMG_7942.MOV" type="video/mp4">
             </video>
@@ -1155,13 +1183,31 @@
   const nav = document.getElementById('nav');
   window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 40), { passive: true });
 
-  // PARALLAX
+  // PARALLAX — само на desktop
   const bg = document.getElementById('heroBg');
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && window.innerWidth > 768) {
     window.addEventListener('scroll', () => {
       bg.style.transform = `scale(1.1) translateY(${scrollY * 0.32}px)`;
     }, { passive: true });
   }
+
+  // VIDEO THUMBNAILS
+  document.querySelectorAll('.vid-item').forEach(item => {
+    const video  = item.querySelector('video');
+    const thumb  = item.querySelector('.vid-thumb');
+    const canvas = item.querySelector('canvas.vid-thumb-img');
+    if (!video || !thumb || !canvas) return;
+    video.addEventListener('loadedmetadata', () => { video.currentTime = 0.5; }, { once: true });
+    video.addEventListener('seeked', () => {
+      try {
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        thumb.style.backgroundImage = '';
+      } catch(e) {}
+    }, { once: true });
+    video.addEventListener('play', () => item.classList.add('vid-playing'), { once: true });
+  });
 
   // SCROLL REVEAL
   const els = document.querySelectorAll('.rev');
