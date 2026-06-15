@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>KOZR LAB | Пране на седалки и детайлинг Варна</title>
   <meta name="description" content="KOZR LAB Варна. Пране на седалки, тапицерия, мокет и багажник. Идваме при вас. Обадете се: 088 923 2706.">
   <meta name="keywords" content="пране на седалки Варна, детайлинг Варна, почистване на кола Варна, пране на тапицерия Варна, химическо чистене автомобил Варна, пране мокет кола, козр лаб">
@@ -70,11 +70,12 @@
       "openingHoursSpecification": [
         {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Tuesday","Wednesday","Thursday","Friday","Saturday"], "opens": "08:00", "closes": "20:00"}
       ],
-      "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5", "reviewCount": "3", "bestRating": "5"},
+      "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5", "reviewCount": "4", "bestRating": "5"},
       "review": [
         {"@type": "Review", "author": {"@type": "Person", "name": "Анелия Методиева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Страхотна работа! Много коректно и професионално отношение, комбинирано с отличен резултат!"},
         {"@type": "Review", "author": {"@type": "Person", "name": "Виктор Дончев"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Препоръчвам!! Момичето дойде на място, работи бързо, достъпна цена."},
-        {"@type": "Review", "author": {"@type": "Person", "name": "Евгения Лечева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Много съм доволна от резултата! Горещо препоръчвам!"}
+        {"@type": "Review", "author": {"@type": "Person", "name": "Евгения Лечева"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Много съм доволна от резултата! Горещо препоръчвам!"},
+        {"@type": "Review", "author": {"@type": "Person", "name": "D. Nikolova"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Аз и моята кола сме много доволни от прецизното почистване! Упоритата следа от инцидент с айрян на седалката ми вече я няма. Благодаря и за страхотното отношение."}
       ],
       "priceRange": "$$",
       "sameAs": ["https://www.facebook.com/people/KOZR-LAB-Interior-Detailing-Varna/61574368934697/","https://www.instagram.com/kozr.lab/"]
@@ -160,6 +161,7 @@
     .nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       padding: .5rem 0;
+      padding-top: calc(.5rem + env(safe-area-inset-top));
       background: var(--white);
       box-shadow: 0 1px 0 rgba(0,0,0,.08);
       transition: box-shadow .3s;
@@ -566,22 +568,38 @@
     /* FOOTER */
     .footer {
       background: var(--black); border-top: 1px solid rgba(255,255,255,.07);
-      padding: 1.875rem 0;
+      padding: 2.5rem 0 calc(1.5rem + env(safe-area-inset-bottom));
     }
     .footer-in {
       width: var(--wrap); margin-inline: auto;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem;
+      display: flex; flex-direction: column; gap: 1.5rem;
     }
-    .footer-brand { font-size: .875rem; font-weight: 800; letter-spacing: .04em; color: rgba(255,255,255,.45); }
-    .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .footer-links a { font-size: .8125rem; color: rgba(255,255,255,.38); transition: color .15s; }
+    .footer-top {
+      display: flex; align-items: center; justify-content: center; gap: 2rem;
+      background: url('background-nika.jpeg') center/cover no-repeat;
+      padding: 2.5rem max(4%, calc((100% - 1180px) / 2));
+      position: relative; overflow: hidden;
+    }
+    .footer-top::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(0,0,0,.78);
+    }
+    .footer-top > * { position: relative; z-index: 1; }
+    .footer-nav { display: flex; gap: 2.5rem; flex-wrap: wrap; }
+    .footer-nav a { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: .04em; text-transform: uppercase; transition: opacity .15s; }
+    .footer-nav a:hover { opacity: .7; }
+    .footer-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 0; }
+    .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
+    .footer-links a { font-size: .8125rem; color: rgba(255,255,255,.45); transition: color .15s; }
     .footer-links a:hover { color: var(--white); }
+    .footer-bottom {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .75rem;
+    }
     .footer-copy { font-size: .75rem; color: rgba(255,255,255,.25); }
-    .footer-nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
-    .footer-nav a { font-size: .8125rem; color: rgba(255,255,255,.38); transition: color .15s; }
-    .footer-nav a:hover { color: var(--white); }
-    .footer-legal { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .5rem; }
+    .footer-legal { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .footer-legal-btn { background: none; border: none; cursor: pointer; font-size: .75rem; color: rgba(255,255,255,.25); font-family: var(--font); transition: color .15s; padding: 0; }
+    .footer-legal-btn:hover { color: rgba(255,255,255,.6); }
     .f-consent { font-size: .6875rem; color: rgba(255,255,255,.4); line-height: 1.55; text-align: center; max-width: 400px; margin: .5rem auto 0; }
     .f-consent-link { background: none; border: none; cursor: pointer; font-size: inherit; color: rgba(255,255,255,.55); font-family: inherit; text-decoration: underline; padding: 0; transition: color .15s; }
     .f-consent-link:hover { color: var(--white); }
@@ -603,7 +621,7 @@
 
     /* FLOAT */
     .float {
-      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50;
+      position: fixed; bottom: max(1.5rem, calc(1rem + env(safe-area-inset-bottom))); right: max(1.5rem, calc(1rem + env(safe-area-inset-right))); z-index: 50;
     }
     .float-tel {
       display: flex; align-items: center; gap: .625rem;
@@ -826,7 +844,7 @@
           </div>
         </div>
         <div style="text-align:center;margin-top:1.25rem;">
-          <button id="vidMoreBtn" onclick="(function(){document.querySelectorAll('.vid-hidden').forEach(function(el){el.style.display='';el.classList.remove('vid-hidden')});document.getElementById('vidMoreBtn').style.display='none'})()"
+          <button id="vidMoreBtn" onclick="(function(){var btn=document.getElementById('vidMoreBtn');var hidden=document.querySelectorAll('.vid-hidden-orig');var expanded=btn.dataset.expanded==='1';if(!expanded){document.querySelectorAll('#vidRow .vid-item[style*=\'display:none\']').forEach(function(el){el.style.display='';el.classList.add('vid-hidden-orig')});btn.dataset.expanded='1';btn.textContent='Скрий видеата';}else{document.querySelectorAll('.vid-hidden-orig').forEach(function(el){el.style.display='none';el.classList.remove('vid-hidden-orig')});btn.dataset.expanded='0';btn.textContent='Виж още видеа';}})()"
             style="background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);color:var(--white);padding:.75rem 1.75rem;border-radius:100px;font-family:var(--font);font-size:.875rem;font-weight:600;cursor:pointer;transition:background .2s">
             Виж още видеа
           </button>
@@ -882,6 +900,26 @@
             <div>
               <div class="rev-name" itemprop="author">Виктор Дончев</div>
               <div class="rev-date">преди 4 седмици</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="rev-card rev d2" role="listitem" itemscope itemtype="https://schema.org/Review">
+          <div class="stars" aria-label="5 от 5 звезди">
+            <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <blockquote class="rev-text" itemprop="reviewBody">
+            "Аз и моята кола сме много доволни от прецизното почистване! Упоритата следа от инцидент с айрян на седалката ми вече я няма 😄 Благодаря и за страхотното отношение 🙏"
+          </blockquote>
+          <div class="rev-author">
+            <div class="rev-av" aria-hidden="true">Д</div>
+            <div>
+              <div class="rev-name" itemprop="author">D. Nikolova</div>
+              <div class="rev-date">току-що</div>
             </div>
           </div>
         </article>
@@ -1017,21 +1055,27 @@
 </main>
 
 <footer class="footer">
-  <div class="footer-in">
-    <img src="kozr logo.png" alt="KOZR LAB" width="48" height="48" style="filter:invert(1); mix-blend-mode:screen; opacity:.85;">
+  <div class="footer-top">
     <nav class="footer-nav" aria-label="Footer навигация">
       <a href="#hero">Начало</a>
       <a href="#services">Услуги</a>
     </nav>
+  </div>
+  <div class="footer-in">
+    <hr class="footer-divider">
     <address class="footer-links" style="font-style:normal;">
+      <img src="kozr logo.png" alt="KOZR LAB" width="36" height="36" style="filter:invert(1); mix-blend-mode:screen; opacity:.75;">
       <a href="tel:+359889232706">088 923 2706</a>
       <a href="https://www.facebook.com/people/KOZR-LAB-Interior-Detailing-Varna/61574368934697/" target="_blank" rel="noopener noreferrer">Facebook</a>
       <a href="https://www.instagram.com/kozr.lab/" target="_blank" rel="noopener noreferrer">Instagram</a>
     </address>
-    <span class="footer-copy">© 2025 KOZR LAB — Пране на автомобилен интериор, Варна</span>
-    <div class="footer-legal">
-      <button class="footer-legal-btn" onclick="openModal('modal-terms')">Условия за ползване</button>
-      <button class="footer-legal-btn" onclick="openModal('modal-privacy')">Политика за поверителност</button>
+    <hr class="footer-divider">
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2025 KOZR LAB — Варна</span>
+      <div class="footer-legal">
+        <button class="footer-legal-btn" onclick="openModal('modal-terms')">Условия за ползване</button>
+        <button class="footer-legal-btn" onclick="openModal('modal-privacy')">Поверителност</button>
+      </div>
     </div>
   </div>
 </footer>
