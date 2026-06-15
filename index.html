@@ -221,11 +221,10 @@
       position: absolute; inset: 0;
       background-image: url('background-nika.jpeg');
       background-size: cover; background-position: center;
-      transform: scale(1.1); opacity: .5;
-      will-change: transform;
+      opacity: .5;
     }
-    @media (max-width: 768px) {
-      .hero-bg { transform: none; }
+    @media (min-width: 769px) {
+      .hero-bg { transform: scale(1.1); will-change: transform; }
     }
     .hero-overlay {
       position: absolute; inset: 0;
