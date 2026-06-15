@@ -132,22 +132,24 @@ module.exports = async function handler(req, res) {
         'стелки': 'stelki', 'stelki': 'stelki'
       };
       const key = map[svcRaw?.toLowerCase()];
+      const eur = parseFloat(price);
 
-      if (!key || !price) {
+      if (!key || isNaN(eur)) {
         await reply(
-          '⚠️ Формат: /цена [услуга] | [цена]\n\n' +
+          '⚠️ Формат: /цена [услуга] | [число в евро]\n\n' +
           'Услуги: седалки, мокет, багажник, стелки\n\n' +
-          'Пример:\n/цена седалки | от 80 лв.\n/цена мокет | от 40 лв.'
+          'Пример:\n/цена седалки | 50\n/цена мокет | 40'
         );
         return res.status(200).json({ ok: true });
       }
 
+      const bgn = Math.round(eur * 1.95583);
       const file = await ghGet(GH, 'prices.json');
       const prices = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
-      prices[key] = price;
+      prices[key] = eur;
 
-      await ghPut(GH, 'prices.json', JSON.stringify(prices, null, 2), file.sha, `Update price: ${svcRaw} = ${price}`);
-      await reply(`✅ Цената е обновена!\n<b>${svcRaw}</b>: ${price}\n\nСайтът се обновява след ~1 мин.`);
+      await ghPut(GH, 'prices.json', JSON.stringify(prices, null, 2), file.sha, `Update price: ${svcRaw} = ${eur} EUR`);
+      await reply(`✅ Цената е обновена!\n<b>${svcRaw}</b>: ${eur} € (≈ ${bgn} лв.)\n\nСайтът се обновява след ~1 мин.`);
     }
 
     // /галерия — списък с всички качени снимки
@@ -204,7 +206,7 @@ module.exports = async function handler(req, res) {
       await reply(
         '🔧 <b>Команди за сайта:</b>\n\n' +
         '📝 <b>Отзив:</b>\n/отзив Иван И. | Страхотна работа!\n\n' +
-        '💰 <b>Цена на услуга:</b>\n/цена седалки | от 80 лв.\n/цена мокет | от 40 лв.\n/цена багажник | от 30 лв.\n/цена стелки | от 25 лв.\n\n' +
+        '💰 <b>Цена (в евро):</b>\n/цена седалки | 50\n/цена мокет | 40\n/цена багажник | 30\n/цена стелки | 25\n\n' +
         '📸 <b>Качи снимка:</b>\nИзпрати снимка директно\n\n' +
         '📂 <b>Виж снимките:</b>\n/галерия\n\n' +
         '🗑 <b>Изтрий снимка:</b>\n/изтрий 1\n\n' +

@@ -305,21 +305,19 @@
     }
     @keyframes gradMove { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
     .btn-grad {
-      background: linear-gradient(90deg,#f472b6,#818cf8,#38bdf8,#34d399,#fbbf24,#f472b6);
-      background-size: 300% 100%;
+      border: 1.5px solid transparent;
+      background:
+        linear-gradient(transparent, transparent) padding-box,
+        linear-gradient(90deg,#f472b6,#818cf8,#38bdf8,#34d399,#fbbf24,#f472b6) border-box;
+      background-size: auto, 300% 100%;
       animation: gradMove 3s linear infinite;
-      border-color: transparent !important;
       color: #fff;
-      text-shadow: 0 1px 3px rgba(0,0,0,.25);
     }
-    .btn-grad:hover { animation-duration: 1.5s; background: linear-gradient(90deg,#f472b6,#818cf8,#38bdf8,#34d399,#fbbf24,#f472b6); background-size: 300% 100%; }
-    .svc-price {
-      display: inline-block; margin-top: .625rem;
-      font-size: .8125rem; font-weight: 700; color: var(--black);
-      background: var(--gray-100); border-radius: 100px;
-      padding: .25rem .75rem;
-    }
-    .svc-price:empty { display: none; }
+    .btn-grad:hover { animation-duration: 1.5s; }
+    .svc-price { display: flex; flex-direction: column; margin-top: .75rem; gap: .1rem; }
+    .svc-price:empty, .svc-price:not(:has(.svc-price-eur)) { display: none; }
+    .svc-price-eur { font-size: 1.125rem; font-weight: 800; color: var(--black); line-height: 1.2; }
+    .svc-price-bgn { font-size: .75rem; color: var(--gray-600); }
 
     .hero-stats {
       position: absolute; bottom: 2rem; left: 0; right: 0; z-index: 2;
@@ -1401,7 +1399,12 @@
       Object.entries(prices).forEach(([key, val]) => {
         if (!val) return;
         const el = document.querySelector('[data-svc="' + key + '"] .svc-price');
-        if (el) el.textContent = val;
+        if (!el) return;
+        const eur = Number(val);
+        const bgn = Math.round(eur * 1.95583);
+        el.innerHTML =
+          '<span class="svc-price-eur">' + eur + ' €</span>' +
+          '<span class="svc-price-bgn">≈ ' + bgn + ' лв.</span>';
       });
     })
     .catch(() => {});
