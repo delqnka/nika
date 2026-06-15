@@ -229,7 +229,12 @@
       position: relative; min-height: 100svh; min-height: 100dvh;
       display: flex; align-items: center; justify-content: center;
       overflow: hidden; background: var(--black);
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: pan-y;
     }
+    .hero a, .hero button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     @media (max-width: 768px) {
       .hero { min-height: 100svh; }
     }
