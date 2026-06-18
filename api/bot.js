@@ -326,6 +326,37 @@ module.exports = async function handler(req, res) {
       await reply(`🗑 Слайдерът <b>${slider.caption}</b> е изтрит.\nСайтът се обновява след ~1 мин.`);
     }
 
+    // /преименувай_слайдер N | Нов надпис
+    else if (/^\/(преименувай_слайдер|preimenovaj_slajder)/i.test(text)) {
+      const body  = text.replace(/^\/(преименувай_слайдер|preimenovaj_slajder)\s*/i, '').trim();
+      const parts = body.split('|').map(s => s.trim());
+      const num   = parseInt(parts[0]);
+      const newCaption = parts.slice(1).join('|').trim();
+
+      if (isNaN(num) || !newCaption) {
+        await reply('⚠️ Формат:\n/преименувай_слайдер 1 | Нов надпис\n\nВиж номерата с /слайдери');
+        return res.status(200).json({ ok: true });
+      }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const sliders = extractSliders(html);
+      const slider = sliders[num - 1];
+
+      if (!slider) {
+        await reply(`❌ Няма слайдер с номер ${num}. Виж с /слайдери`);
+        return res.status(200).json({ ok: true });
+      }
+
+      const updated = slider.fullBlock.replace(
+        `<div class="ba-cap">${slider.caption}</div>`,
+        `<div class="ba-cap">${newCaption}</div>`
+      );
+      html = html.replace(slider.fullBlock, updated);
+      await ghPut(GH, 'index.html', html, file.sha, `Rename slider: ${slider.caption} → ${newCaption}`);
+      await reply(`✅ Надписът е сменен!\n<b>${slider.caption}</b> → <b>${newCaption}</b>\n\nСайтът се обновява след ~1 мин.`);
+    }
+
     // /отмени_слайдер — изчиства pending state
     else if (/^\/(отмени_слайдер|otmeni_slajder)/i.test(text)) {
       const pending = await ghGet(GH, 'ba_pending.json');
@@ -749,6 +780,7 @@ module.exports = async function handler(req, res) {
         '1️⃣ Изпрати снимка с надпис: /преди Задни седалки\n' +
         '2️⃣ Изпрати втора снимка с надпис: /след\n' +
         '📋 Виж: /слайдери\n' +
+        '✏️ /преименувай_слайдер 1 | Нов надпис\n' +
         '🗑 Изтрий: /изтрий_слайдер 1\n' +
         '❌ Отмени незавършен: /отмени_слайдер\n\n' +
 
