@@ -518,11 +518,27 @@ module.exports = async function handler(req, res) {
       const video = videos[num - 1];
       if (!video) { await reply(`❌ Няма видео ${num}. Виж с /видеа`); return res.status(200).json({ ok: true }); }
 
-      const esc = video.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      html = html.replace(
-        new RegExp(`\\s*<div class="vid-item[^"]*"[^>]*>[\\s\\S]*?<source src="${esc}"[\\s\\S]*?</video>\\s*</div>\\s*</div>`),
-        ''
-      );
+      // Find the exact vid-item block using div depth counting
+      const srcIdx = html.indexOf(`<source src="${video.filename}"`);
+      if (srcIdx === -1) { await reply('❌ Видеото не е намерено в HTML.'); return res.status(200).json({ ok: true }); }
+      const itemStart = html.lastIndexOf('<div class="vid-item', srcIdx);
+      if (itemStart === -1) { await reply('❌ Грешка при намиране на блока.'); return res.status(200).json({ ok: true }); }
+
+      let depth = 0, j = itemStart, itemEnd = -1;
+      while (j < html.length) {
+        if (html[j] === '<') {
+          if (html.startsWith('<div', j) && (html[j+4] === ' ' || html[j+4] === '>')) {
+            depth++; j += 4;
+          } else if (html.startsWith('</div>', j)) {
+            depth--; j += 6;
+            if (depth === 0) { itemEnd = j; break; }
+          } else { j++; }
+        } else { j++; }
+      }
+
+      if (itemEnd === -1) { await reply('❌ Грешка при изтриване.'); return res.status(200).json({ ok: true }); }
+      const actualStart = itemStart > 0 && html[itemStart - 1] === '\n' ? itemStart - 1 : itemStart;
+      html = html.substring(0, actualStart) + html.substring(itemEnd);
       await ghPut(GH, 'index.html', html, file.sha, `Delete video ${video.filename}`);
       await reply(`🗑 Видео <code>${video.filename}</code> е изтрито.\nСайтът се обновява след ~1 мин.`);
     }
