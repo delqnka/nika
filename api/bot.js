@@ -1,6 +1,7 @@
 const STAR = '<svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
 const REPO = 'delqnka/nika';
 
+
 async function tg(token, method, body) {
   const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
@@ -41,6 +42,8 @@ async function listGalleryFiles(ghToken) {
   return Array.isArray(all) ? all.filter(f => f.name.startsWith('gallery_') && f.type === 'file') : [];
 }
 
+// ── HTML builders ────────────────────────────────────────────────────────────
+
 function buildReviewCard(author, text) {
   const initial = [...author][0].toUpperCase();
   const stars = Array(5).fill(STAR).join('\n            ');
@@ -62,6 +65,129 @@ function buildReviewCard(author, text) {
         </article>`;
 }
 
+function buildSliderItem(beforeFile, afterFile, caption) {
+  const SVG_L = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+  const SVG_R = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+  return `
+        <div class="ba-item rev">
+          <div class="ba-slider" aria-label="Сравнение преди и след — ${caption}">
+            <img class="ba-img" src="${beforeFile}" alt="Преди — ${caption}" loading="lazy" width="600" height="450">
+            <img class="ba-img ba-after" src="${afterFile}" alt="След — ${caption}" loading="lazy" width="600" height="450">
+            <div class="ba-div"></div>
+            <div class="ba-handle">
+              ${SVG_L}
+              ${SVG_R}
+            </div>
+            <span class="ba-lbl ba-lbl-b" aria-hidden="true">Преди</span>
+            <span class="ba-lbl ba-lbl-a" aria-hidden="true">След</span>
+          </div>
+          <div class="ba-cap">${caption}</div>
+        </div>`;
+}
+
+function buildVideoItem(filename) {
+  return `
+          <div class="vid-item rev">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+            <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване">
+              <source src="${filename}" type="video/mp4">
+            </video>
+          </div>`;
+}
+
+// ── HTML parsers ─────────────────────────────────────────────────────────────
+
+// Returns [{index, author, text, fullBlock}]
+function extractReviews(html) {
+  const reviews = [];
+  const regex = /<article[^>]+class="rev-card[^"]*"[^>]*>[\s\S]*?<\/article>/g;
+  let match, i = 1;
+  while ((match = regex.exec(html)) !== null) {
+    const block = match[0];
+    const authorMatch = block.match(/itemprop="author">\s*([^<]+)\s*<\/div>/);
+    const textMatch = block.match(/<blockquote[^>]*>\s*"([^"]{1,80})/);
+    if (authorMatch) {
+      reviews.push({
+        index: i++,
+        author: authorMatch[1].trim(),
+        text: textMatch ? textMatch[1].trim() : '',
+        fullBlock: block
+      });
+    }
+  }
+  return reviews;
+}
+
+// Returns [{index, caption, fullBlock}]
+function extractSliders(html) {
+  const sliders = [];
+  const regex = /<div class="ba-item[^"]*"[^>]*>[\s\S]*?<div class="ba-cap">([^<]*)<\/div>\s*<\/div>/g;
+  let match, i = 1;
+  while ((match = regex.exec(html)) !== null) {
+    sliders.push({
+      index: i++,
+      caption: match[1].trim(),
+      fullBlock: match[0]
+    });
+  }
+  return sliders;
+}
+
+// Returns [{index, filename}]
+function extractVideoSources(html) {
+  const regex = /<source src="([^"]+)"\s+type="video\/mp4">/g;
+  const videos = [];
+  let match, i = 1;
+  while ((match = regex.exec(html)) !== null) {
+    videos.push({ index: i++, filename: match[1] });
+  }
+  return videos;
+}
+
+// Парсира телефон → {local: "088 923 2706", intl: "+359889232706"} или null
+function parsePhone(raw) {
+  const digits = raw.replace(/\D/g, '');
+  let local;
+  if (digits.startsWith('359') && digits.length === 12) {
+    local = '0' + digits.substring(3);
+  } else if (digits.startsWith('0') && digits.length === 10) {
+    local = digits;
+  } else {
+    return null;
+  }
+  const intl = '+359' + local.substring(1);
+  const localFmt = local.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1 $2 $3');
+  return { local: localFmt, intl };
+}
+
+// Изтегля файл от Telegram и връща Buffer
+async function downloadTgFile(token, fileId) {
+  const info = await tg(token, 'getFile', { file_id: fileId });
+  const path = info.result?.file_path;
+  if (!path) return null;
+  const buf = Buffer.from(await (await fetch(`https://api.telegram.org/file/bot${token}/${path}`)).arrayBuffer());
+  return buf;
+}
+
+// Добавя снимка в gallery.json
+async function addToGallery(GH, filename) {
+  let sha = null, photos = [];
+  const f = await ghGet(GH, 'gallery.json');
+  if (f?.content) { photos = JSON.parse(Buffer.from(f.content, 'base64').toString('utf-8')); sha = f.sha; }
+  photos.push(filename);
+  await ghPut(GH, 'gallery.json', JSON.stringify(photos, null, 2), sha, `Gallery add: ${filename}`);
+}
+
+// Премахва снимка от gallery.json
+async function removeFromGallery(GH, filename) {
+  const f = await ghGet(GH, 'gallery.json');
+  if (!f?.content) return;
+  const photos = JSON.parse(Buffer.from(f.content, 'base64').toString('utf-8')).filter(p => p !== filename);
+  await ghPut(GH, 'gallery.json', JSON.stringify(photos, null, 2), f.sha, `Gallery remove: ${filename}`);
+}
+
+// ── Handler ──────────────────────────────────────────────────────────────────
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).json({ ok: true });
 
@@ -73,7 +199,7 @@ module.exports = async function handler(req, res) {
   if (!msg) return res.status(200).json({ ok: true });
 
   const chatId = msg.chat.id;
-  const text   = msg.text || msg.caption || '';
+  const text   = (msg.text || msg.caption || '').trim();
 
   const reply = (t) => tg(BOT, 'sendMessage', { chat_id: chatId, text: t, parse_mode: 'HTML' });
 
@@ -84,8 +210,138 @@ module.exports = async function handler(req, res) {
 
   try {
 
-    // /отзив Иван И. | Страхотен резултат!
-    if (/^\/(отзив|otziv)/i.test(text)) {
+    // ══════════════════════════════════════════════════════════════════════════
+    // ПРЕДИ/СЛЕД СЛАЙДЕРИ
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // Стъпка 1: изпрати снимка с надпис /преди Описание
+    if (msg.photo && /^\/(преди|predi)/i.test(text)) {
+      const caption = text.replace(/^\/(преди|predi)\s*/i, '').trim() || 'Преди и след';
+      const photo   = msg.photo[msg.photo.length - 1];
+      const buf     = await downloadTgFile(BOT, photo.file_id);
+
+      if (!buf) {
+        await reply('❌ Не успях да изтегля снимката. Опитай пак.');
+        return res.status(200).json({ ok: true });
+      }
+
+      const filename = `ba_${Date.now()}_before.jpg`;
+      await ghPut(GH, filename, buf, null, `Upload before image: ${filename}`);
+
+      // Запази pending state в GitHub
+      const pendingData = JSON.stringify({ beforeFile: filename, caption });
+      const existing = await ghGet(GH, 'ba_pending.json').catch(() => null);
+      await ghPut(GH, 'ba_pending.json', pendingData, existing?.sha || null, 'Save pending before/after state');
+
+      await reply(
+        `✅ Снимката <b>"преди"</b> е запазена!\n📁 <code>${filename}</code>\n\nСега изпрати снимката <b>"след"</b> с надпис:\n/след\n\n` +
+        `Слайдерът ще се казва: <b>${caption}</b>`
+      );
+    }
+
+    // Стъпка 2: изпрати снимка с надпис /след
+    else if (msg.photo && /^\/(след|sled)/i.test(text)) {
+      const pendingFile = await ghGet(GH, 'ba_pending.json');
+
+      if (!pendingFile || pendingFile.message) {
+        await reply('⚠️ Първо изпрати снимката "преди" с надпис /преди Описание');
+        return res.status(200).json({ ok: true });
+      }
+
+      const pending  = JSON.parse(Buffer.from(pendingFile.content, 'base64').toString('utf-8'));
+      const photo    = msg.photo[msg.photo.length - 1];
+      const buf      = await downloadTgFile(BOT, photo.file_id);
+
+      if (!buf) {
+        await reply('❌ Не успях да изтегля снимката. Опитай пак.');
+        return res.status(200).json({ ok: true });
+      }
+
+      const afterFile = `ba_${Date.now()}_after.jpg`;
+      await ghPut(GH, afterFile, buf, null, `Upload after image: ${afterFile}`);
+
+      // Добави слайдера в index.html
+      const htmlFile = await ghGet(GH, 'index.html');
+      let html = Buffer.from(htmlFile.content, 'base64').toString('utf-8');
+      const slider = buildSliderItem(pending.beforeFile, afterFile, pending.caption);
+
+      // Вмъкни преди затварящия </div> на ba-wrap (маркирано от <!-- ВИДЕА -->)
+      html = html.replace(
+        '\n      </div>\n\n      <!-- ВИДЕА -->',
+        '\n' + slider + '\n\n      </div>\n\n      <!-- ВИДЕА -->'
+      );
+
+      await ghPut(GH, 'index.html', html, htmlFile.sha, `Add before/after slider: ${pending.caption}`);
+
+      // Изтрий pending state
+      await ghDelete(GH, 'ba_pending.json', pendingFile.sha, 'Clear pending before/after state');
+
+      await reply(
+        `✅ Слайдерът е добавен!\n\n📸 <b>${pending.caption}</b>\nПреди: <code>${pending.beforeFile}</code>\nСлед: <code>${afterFile}</code>\n\nСайтът се обновява след ~1 мин.\nВиж всички: /слайдери`
+      );
+    }
+
+    // /слайдери — списък
+    else if (/^\/(слайдери|slajderi)$/i.test(text)) {
+      const file = await ghGet(GH, 'index.html');
+      const html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const sliders = extractSliders(html);
+
+      if (sliders.length === 0) {
+        await reply('🖼 Няма слайдери.');
+      } else {
+        const list = sliders.map(s => `${s.index}. <b>${s.caption}</b>`).join('\n');
+        await reply(`🖼 <b>Слайдери преди/след (${sliders.length}):</b>\n\n${list}\n\nЗа изтриване: /изтрий_слайдер 1`);
+      }
+
+      // Покажи и дали има незавършен pending
+      const pending = await ghGet(GH, 'ba_pending.json').catch(() => null);
+      if (pending && !pending.message) {
+        const p = JSON.parse(Buffer.from(pending.content, 'base64').toString('utf-8'));
+        await reply(`⏳ Имаш незавършен слайдер:\n<b>${p.caption}</b>\nИзпрати снимката "след" с надпис /след\n\nИли отмени с /отмени_слайдер`);
+      }
+    }
+
+    // /изтрий_слайдер N
+    else if (/^\/(изтрий_слайдер|iztrii_slajder)/i.test(text)) {
+      const num = parseInt(text.replace(/^\/(изтрий_слайдер|iztrii_slajder)\s*/i, '').trim());
+
+      if (isNaN(num)) {
+        await reply('⚠️ Пиши номера:\n/изтрий_слайдер 1\n\nВиж списъка с /слайдери');
+        return res.status(200).json({ ok: true });
+      }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const sliders = extractSliders(html);
+      const slider = sliders[num - 1];
+
+      if (!slider) {
+        await reply(`❌ Няма слайдер с номер ${num}. Виж с /слайдери`);
+        return res.status(200).json({ ok: true });
+      }
+
+      html = html.replace(slider.fullBlock, '');
+      await ghPut(GH, 'index.html', html, file.sha, `Delete slider: ${slider.caption}`);
+      await reply(`🗑 Слайдерът <b>${slider.caption}</b> е изтрит.\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // /отмени_слайдер — изчиства pending state
+    else if (/^\/(отмени_слайдер|otmeni_slajder)/i.test(text)) {
+      const pending = await ghGet(GH, 'ba_pending.json');
+      if (!pending || pending.message) {
+        await reply('ℹ️ Няма незавършен слайдер за отмяна.');
+      } else {
+        await ghDelete(GH, 'ba_pending.json', pending.sha, 'Cancel pending before/after');
+        await reply('✅ Незавършеният слайдер е отменен.');
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ОТЗИВИ
+    // ══════════════════════════════════════════════════════════════════════════
+
+    else if (/^\/(отзив|otziv)/i.test(text)) {
       const body = text.replace(/^\/(отзив|otziv)\s*/i, '');
       const [author, ...rest] = body.split('|').map(s => s.trim());
       const reviewText = rest.join('|').trim();
@@ -107,167 +363,428 @@ module.exports = async function handler(req, res) {
       await reply(`✅ Отзивът от <b>${author}</b> е добавен!\nСайтът се обновява след ~1 мин.`);
     }
 
-    // Снимка
-    else if (msg.photo) {
-      const photo    = msg.photo[msg.photo.length - 1];
-      const fileInfo = await tg(BOT, 'getFile', { file_id: photo.file_id });
-      const imgUrl   = `https://api.telegram.org/file/bot${BOT}/${fileInfo.result.file_path}`;
-      const imgBuf   = Buffer.from(await (await fetch(imgUrl)).arrayBuffer());
-      const filename = `gallery_${Date.now()}.jpg`;
+    else if (/^\/(отзиви|otzivi)$/i.test(text)) {
+      const file = await ghGet(GH, 'index.html');
+      const html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const reviews = extractReviews(html);
 
-      await ghPut(GH, filename, imgBuf, null, `Upload gallery image ${filename}`);
-      await reply(`✅ Снимката е качена!\n📁 <code>${filename}</code>\n\nЗа да видиш всички снимки: /галерия\nЗа да изтриеш: /изтрий [число]`);
+      if (reviews.length === 0) {
+        await reply('📝 Няма отзиви.');
+      } else {
+        const list = reviews.map(r => `${r.index}. <b>${r.author}</b>\n   "${r.text}..."`).join('\n\n');
+        await reply(`📝 <b>Отзиви (${reviews.length}):</b>\n\n${list}\n\nЗа изтриване: /изтрий_отзив 1`);
+      }
     }
 
-    // /цена [услуга] | [цена]
-    else if (/^\/(цена|cena)/i.test(text)) {
-      const body = text.replace(/^\/(цена|cena)\s*/i, '');
-      const [svcRaw, ...rest] = body.split('|').map(s => s.trim());
-      const price = rest.join('|').trim();
+    else if (/^\/(изтрий_отзив|iztrii_otziv)/i.test(text)) {
+      const num = parseInt(text.replace(/^\/(изтрий_отзив|iztrii_otziv)\s*/i, '').trim());
 
-      const map = {
-        'седалки': 'sedalki', 'sedalki': 'sedalki',
-        'мокет': 'moket', 'moket': 'moket',
-        'багажник': 'bagajnik', 'bagajnik': 'bagajnik',
-        'стелки': 'stelki', 'stelki': 'stelki'
-      };
-      const key = map[svcRaw?.toLowerCase()];
-      const eur = parseFloat(price);
+      if (isNaN(num)) {
+        await reply('⚠️ Пиши номера:\n/изтрий_отзив 1\n\nВиж списъка с /отзиви');
+        return res.status(200).json({ ok: true });
+      }
 
-      if (!key || isNaN(eur)) {
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const reviews = extractReviews(html);
+      const review = reviews[num - 1];
+
+      if (!review) {
+        await reply(`❌ Няма отзив с номер ${num}. Виж с /отзиви`);
+        return res.status(200).json({ ok: true });
+      }
+
+      html = html.replace(review.fullBlock, '');
+      await ghPut(GH, 'index.html', html, file.sha, `Delete review from ${review.author}`);
+      await reply(`🗑 Отзивът от <b>${review.author}</b> е изтрит.\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════════
+    // СНИМКИ
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // /снимка_услуга N — смяна/добавяне на снимка към услуга
+    else if (msg.photo && /^\/(снимка_услуга|snimka_usluga)/i.test(text)) {
+      const num = parseInt(text.replace(/^\/(снимка_услуга|snimka_usluga)\s*/i, '').trim());
+      if (isNaN(num)) {
+        await reply('⚠️ Изпрати снимката с надпис:\n/снимка_услуга [номер]\n\nПример: /снимка_услуга 1\nВиж номерата с /услуги');
+        return res.status(200).json({ ok: true });
+      }
+      const sf = await ghGet(GH, 'services.json');
+      const services = JSON.parse(Buffer.from(sf.content, 'base64').toString('utf-8'));
+      const svc = services[num - 1];
+      if (!svc) { await reply(`❌ Няма услуга ${num}. Виж с /услуги`); return res.status(200).json({ ok: true }); }
+
+      const buf = await downloadTgFile(BOT, msg.photo[msg.photo.length - 1].file_id);
+      if (!buf) { await reply('❌ Не успях да изтегля снимката.'); return res.status(200).json({ ok: true }); }
+
+      const filename = `svc_${svc.id}_${Date.now()}.jpg`;
+      await ghPut(GH, filename, buf, null, `Service photo: ${svc.name}`);
+      svc.photo = filename;
+      await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Update photo: ${svc.name}`);
+      await reply(`✅ Снимката на <b>${svc.name}</b> е обновена!\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // Обикновена снимка (без специален надпис) → галерия на сайта
+    else if (msg.photo && !/^\/(преди|predi|след|sled)/i.test(text)) {
+      const photo    = msg.photo[msg.photo.length - 1];
+      const buf      = await downloadTgFile(BOT, photo.file_id);
+      if (!buf) { await reply('❌ Не успях да изтегля снимката.'); return res.status(200).json({ ok: true }); }
+      const filename = `gallery_${Date.now()}.jpg`;
+      await ghPut(GH, filename, buf, null, `Upload gallery image ${filename}`);
+      await addToGallery(GH, filename);
+      await reply(`✅ Снимката е качена и се вижда на сайта!\n📁 <code>${filename}</code>\n\nЗа списък: /галерия\nЗа изтриване: /изтрий [число]`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ВИДЕА
+    // ══════════════════════════════════════════════════════════════════════════
+
+    else if (msg.video || msg.document?.mime_type?.startsWith('video/')) {
+      const mediaObj = msg.video || msg.document;
+      const buf      = await downloadTgFile(BOT, mediaObj.file_id);
+
+      if (!buf) {
+        await reply('❌ Файлът е твърде голям (макс. 20 MB). Компресирай видеото и изпрати пак.');
+        return res.status(200).json({ ok: true });
+      }
+
+      const filename = `video_${Date.now()}.mp4`;
+      await ghPut(GH, filename, buf, null, `Upload video ${filename}`);
+
+      const htmlFile = await ghGet(GH, 'index.html');
+      let html = Buffer.from(htmlFile.content, 'base64').toString('utf-8');
+      const card = buildVideoItem(filename);
+      html = html.replace(
+        '\n        </div>\n        <div style="text-align:center',
+        '\n' + card + '\n        </div>\n        <div style="text-align:center'
+      );
+      await ghPut(GH, 'index.html', html, htmlFile.sha, `Add video ${filename}`);
+      await reply(`✅ Видеото е качено и добавено!\n📁 <code>${filename}</code>\n\nСайтът се обновява след ~1 мин.\nЗа списък: /видеа\nЗа изтриване: /изтрий_видео [число]`);
+    }
+
+    else if (/^\/(видеа|videа|videa)$/i.test(text)) {
+      const file = await ghGet(GH, 'index.html');
+      const html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const videos = extractVideoSources(html);
+
+      if (videos.length === 0) {
+        await reply('📹 Няма видеа.');
+      } else {
+        const list = videos.map(v => `${v.index}. <code>${v.filename}</code>`).join('\n');
+        await reply(`📹 <b>Видеа (${videos.length}):</b>\n\n${list}\n\nЗа изтриване: /изтрий_видео 1`);
+      }
+    }
+
+    else if (/^\/(изтрий_видео|iztrii_video)/i.test(text)) {
+      const num = parseInt(text.replace(/^\/(изтрий_видео|iztrii_video)\s*/i, '').trim());
+      if (isNaN(num)) { await reply('⚠️ /изтрий_видео 1\n\nВиж с /видеа'); return res.status(200).json({ ok: true }); }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const videos = extractVideoSources(html);
+      const video = videos[num - 1];
+      if (!video) { await reply(`❌ Няма видео ${num}. Виж с /видеа`); return res.status(200).json({ ok: true }); }
+
+      const esc = video.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      html = html.replace(
+        new RegExp(`\\s*<div class="vid-item[^"]*"[^>]*>[\\s\\S]*?<source src="${esc}"[\\s\\S]*?</video>\\s*</div>\\s*</div>`),
+        ''
+      );
+      await ghPut(GH, 'index.html', html, file.sha, `Delete video ${video.filename}`);
+      await reply(`🗑 Видео <code>${video.filename}</code> е изтрито.\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ЦЕНИ / ОПИСАНИЯ / УСЛУГИ
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // ── /услуги — списък ────────────────────────────────────────────────────
+    else if (/^\/(услуги|uslugi)$/i.test(text)) {
+      const sf = await ghGet(GH, 'services.json');
+      const services = JSON.parse(Buffer.from(sf.content, 'base64').toString('utf-8'));
+
+      if (!services.length) {
+        await reply('📋 Няма услуги.\n\nДобави с: /нова_услуга Полиране | 80 | Описание...');
+      } else {
+        const list = services.map((s, i) => {
+          const price = s.price ? `${s.price} €` : 'без цена';
+          return `${i + 1}. <b>${s.name}</b> — ${price}`;
+        }).join('\n');
         await reply(
-          '⚠️ Формат: /цена [услуга] | [число в евро]\n\n' +
-          'Услуги: седалки, мокет, багажник, стелки\n\n' +
-          'Пример:\n/цена седалки | 50\n/цена мокет | 40'
+          `🔧 <b>Услуги (${services.length}):</b>\n\n${list}\n\n` +
+          `✏️ /редактирай_услуга 1 | цена | 55\n` +
+          `✏️ /редактирай_услуга 1 | описание | Нов текст\n` +
+          `✏️ /редактирай_услуга 1 | наименование | Ново Наименование\n` +
+          `➕ /нова_услуга Полиране | 80 | Описание\n` +
+          `🗑 /изтрий_услуга 1`
+        );
+      }
+    }
+
+    // ── /редактирай_услуга N | поле | стойност ──────────────────────────────
+    else if (/^\/(редактирай_услуга|redaktiraj_usluga)/i.test(text)) {
+      const body  = text.replace(/^\/(редактирай_услуга|redaktiraj_usluga)\s*/i, '');
+      const parts = body.split('|').map(s => s.trim());
+      const num   = parseInt(parts[0]);
+      const field = (parts[1] || '').toLowerCase();
+      const value = parts.slice(2).join('|').trim();
+
+      if (isNaN(num) || !field || !value) {
+        await reply(
+          '⚠️ Формат:\n/редактирай_услуга [номер] | [поле] | [стойност]\n\n' +
+          'Полета: наименование, цена, описание\n\n' +
+          'Примери:\n/редактирай_услуга 1 | цена | 55\n' +
+          '/редактирай_услуга 1 | описание | Дълбоко почистване...\n' +
+          '/редактирай_услуга 1 | наименование | Пране на седалки Pro\n\n' +
+          'Виж номерата с /услуги'
         );
         return res.status(200).json({ ok: true });
       }
 
-      const bgn = Math.round(eur * 1.95583);
-      const file = await ghGet(GH, 'prices.json');
-      const prices = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
-      prices[key] = eur;
+      const sf = await ghGet(GH, 'services.json');
+      const services = JSON.parse(Buffer.from(sf.content, 'base64').toString('utf-8'));
+      const svc = services[num - 1];
 
-      await ghPut(GH, 'prices.json', JSON.stringify(prices, null, 2), file.sha, `Update price: ${svcRaw} = ${eur} EUR`);
-      await reply(`✅ Цената е обновена!\n<b>${svcRaw}</b>: ${eur} € (≈ ${bgn} лв.)\n\nСайтът се обновява след ~1 мин.`);
+      if (!svc) {
+        await reply(`❌ Няма услуга с номер ${num}. Виж с /услуги`);
+        return res.status(200).json({ ok: true });
+      }
+
+      const isName  = /^(наименование|name|ime|наим)$/.test(field);
+      const isPrice = /^(цена|cena|price)$/.test(field);
+      const isDesc  = /^(описание|opisanie|desc)$/.test(field);
+
+      if (!isName && !isPrice && !isDesc) {
+        await reply('⚠️ Непознато поле. Използвай: наименование, цена, описание');
+        return res.status(200).json({ ok: true });
+      }
+
+      if (isPrice) {
+        const eur = parseFloat(value);
+        if (isNaN(eur)) { await reply('⚠️ Цената трябва да е число в евро.'); return res.status(200).json({ ok: true }); }
+        const bgn = Math.round(eur * 1.95583);
+        svc.price = eur;
+        await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Update price: ${svc.name}`);
+        await reply(`✅ Цената на <b>${svc.name}</b> е обновена!\n${eur} € (≈ ${bgn} лв.)\n\nСайтът се обновява след ~1 мин.`);
+      } else if (isDesc) {
+        svc.desc = value;
+        await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Update description: ${svc.name}`);
+        await reply(`✅ Описанието на <b>${svc.name}</b> е обновено!\nСайтът се обновява след ~1 мин.`);
+      } else {
+        const oldName = svc.name;
+        svc.name = value;
+        await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Rename: ${oldName} → ${value}`);
+        await reply(`✅ Услугата е преименувана!\n<b>${oldName}</b> → <b>${value}</b>\n\nСайтът се обновява след ~1 мин.`);
+      }
     }
 
-    // /нова_услуга Наименование | 60 | Описание
+    // ── /нова_услуга Наименование | цена | описание ─────────────────────────
     else if (/^\/(нова_услуга|nova_usluga)/i.test(text)) {
-      const body = text.replace(/^\/(нова_услуга|nova_usluga)\s*/i, '');
+      const body  = text.replace(/^\/(нова_услуга|nova_usluga)\s*/i, '');
       const parts = body.split('|').map(s => s.trim());
-      const name = parts[0];
+      const name  = parts[0];
       const price = parseFloat(parts[1]);
-      const desc = parts.slice(2).join('|').trim();
+      const desc  = parts.slice(2).join('|').trim();
 
       if (!name || isNaN(price)) {
-        await reply('⚠️ Формат:\n/нова_услуга Наименование | 60 | Описание на услугата\n\nПример:\n/нова_услуга Полиране | 80 | Защитно полиране на купето.');
+        await reply('⚠️ Формат:\n/нова_услуга Наименование | цена | Описание\n\nПример:\n/нова_услуга Полиране | 80 | Защитно полиране на купето.');
         return res.status(200).json({ ok: true });
       }
 
-      const id = 'svc_' + Date.now();
-      const bgn = Math.round(price * 1.95583);
-      const file = await ghGet(GH, 'services.json');
-      const services = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
+      const bgn  = Math.round(price * 1.95583);
+      const id   = 'svc_' + Date.now();
+      const sf   = await ghGet(GH, 'services.json');
+      const services = JSON.parse(Buffer.from(sf.content, 'base64').toString('utf-8'));
       services.push({ id, name, price, desc });
-
-      await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), file.sha, `Add service: ${name}`);
-      await reply(`✅ Услугата е добавена!\n<b>${name}</b> — ${price} € (≈ ${bgn} лв.)\nСайтът се обновява след ~1 мин.`);
+      await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Add service: ${name}`);
+      const newNum = services.length;
+      await reply(`✅ Услугата е добавена!\n<b>${name}</b> — ${price} € (≈ ${bgn} лв.)\n\n📸 <b>Добави снимка:</b> изпрати снимка с надпис:\n<code>/снимка_услуга ${newNum}</code>\n\nСайтът се обновява след ~1 мин.\nВиж всички с /услуги`);
     }
 
-    // /описание [услуга] | [текст]
-    else if (/^\/(описание|opisanie)/i.test(text)) {
-      const body = text.replace(/^\/(описание|opisanie)\s*/i, '');
-      const [svcRaw, ...rest] = body.split('|').map(s => s.trim());
-      const descText = rest.join('|').trim();
+    // ── /изтрий_услуга N ────────────────────────────────────────────────────
+    else if (/^\/(изтрий_услуга|iztrii_usluga)/i.test(text)) {
+      const num = parseInt(text.replace(/^\/(изтрий_услуга|iztrii_usluga)\s*/i, '').trim());
+      if (isNaN(num)) { await reply('⚠️ /изтрий_услуга [номер]\n\nВиж с /услуги'); return res.status(200).json({ ok: true }); }
 
-      const map = {
-        'седалки': 'sedalki', 'sedalki': 'sedalki',
-        'мокет': 'moket', 'moket': 'moket',
-        'багажник': 'bagajnik', 'bagajnik': 'bagajnik',
-        'стелки': 'stelki', 'stelki': 'stelki'
-      };
-      const key = map[svcRaw?.toLowerCase()];
+      const sf = await ghGet(GH, 'services.json');
+      const services = JSON.parse(Buffer.from(sf.content, 'base64').toString('utf-8'));
+      const svc = services[num - 1];
+      if (!svc) { await reply(`❌ Няма услуга ${num}. Виж с /услуги`); return res.status(200).json({ ok: true }); }
 
-      if (!key || !descText) {
-        await reply('⚠️ Формат:\n/описание седалки | Дълбоко почистване на...\n\nУслуги: седалки, мокет, багажник, стелки');
+      services.splice(num - 1, 1);
+      await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Delete service: ${svc.name}`);
+      await reply(`🗑 <b>${svc.name}</b> е изтрита.\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ТЕКСТОВЕ И КОНТАКТИ
+    // ══════════════════════════════════════════════════════════════════════════
+
+    else if (/^\/(телефон|telefon)/i.test(text)) {
+      const raw = text.replace(/^\/(телефон|telefon)\s*/i, '').trim();
+      const phone = parsePhone(raw);
+
+      if (!phone) {
+        await reply('⚠️ Формат:\n/телефон 088 654 3210\n\nИли с код:\n/телефон +359886543210');
         return res.status(200).json({ ok: true });
       }
 
-      const file = await ghGet(GH, 'descriptions.json');
-      const descs = JSON.parse(Buffer.from(file.content, 'base64').toString('utf-8'));
-      descs[key] = descText;
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const currentIntlMatch = html.match(/href="tel:(\+\d+)"/);
+      if (!currentIntlMatch) { await reply('❌ Не намерих текущия телефон.'); return res.status(200).json({ ok: true }); }
+      const currentIntl = currentIntlMatch[1];
+      const currentLocal = '0' + currentIntl.substring(4);
+      const currentLocalFmt = currentLocal.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1 $2 $3');
 
-      await ghPut(GH, 'descriptions.json', JSON.stringify(descs, null, 2), file.sha, `Update description: ${svcRaw}`);
-      await reply(`✅ Описанието на <b>${svcRaw}</b> е обновено!\nСайтът се обновява след ~1 мин.`);
+      html = html
+        .replace(new RegExp(currentIntl.replace('+', '\\+'), 'g'), phone.intl)
+        .replace(new RegExp(currentLocalFmt, 'g'), phone.local);
+
+      await ghPut(GH, 'index.html', html, file.sha, `Update phone to ${phone.local}`);
+      await reply(`✅ Телефонът е обновен!\n<b>${phone.local}</b>\n\nСайтът се обновява след ~1 мин.`);
     }
 
-    // /галерия — списък с всички качени снимки
+    else if (/^\/(заглавие|zaglavie)/i.test(text)) {
+      const newH1 = text.replace(/^\/(заглавие|zaglavie)\s*/i, '').trim();
+      if (!newH1) { await reply('⚠️ /заглавие Чист интериор.<br><em>Без компромис.</em>'); return res.status(200).json({ ok: true }); }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      html = html.replace(/(<h1 class="hero-h1">)([\s\S]*?)(<\/h1>)/, `$1\n        ${newH1}\n      $3`);
+      await ghPut(GH, 'index.html', html, file.sha, 'Update hero heading');
+      await reply(`✅ Заглавието е обновено!\nСайтът се обновява след ~1 мин.`);
+    }
+
+    else if (/^\/(слоган|slogan)/i.test(text)) {
+      const newP = text.replace(/^\/(слоган|slogan)\s*/i, '').trim();
+      if (!newP) { await reply('⚠️ /слоган Текст под заглавието...'); return res.status(200).json({ ok: true }); }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      html = html.replace(/(<p class="hero-p">)([\s\S]*?)(<\/p>)/, `$1\n        ${newP}\n      $3`);
+      await ghPut(GH, 'index.html', html, file.sha, 'Update hero paragraph');
+      await reply(`✅ Слоганът е обновен!\nСайтът се обновява след ~1 мин.`);
+    }
+
+    else if (/^\/(таг|tag)/i.test(text)) {
+      const newTag = text.replace(/^\/(таг|tag)\s*/i, '').trim();
+      if (!newTag) { await reply('⚠️ /таг Варна и Варненско'); return res.status(200).json({ ok: true }); }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      html = html.replace(
+        /(<div class="hero-tag">[\s\S]*?<span class="hero-dot"><\/span>\s*)([\s\S]*?)(\s*<\/div>)/,
+        `$1\n        ${newTag}\n      $3`
+      );
+      await ghPut(GH, 'index.html', html, file.sha, `Update hero tag: ${newTag}`);
+      await reply(`✅ Тагът е обновен на "<b>${newTag}</b>"!\nСайтът се обновява след ~1 мин.`);
+    }
+
+    else if (/^\/(соц|soc)/i.test(text)) {
+      const body = text.replace(/^\/(соц|soc)\s*/i, '');
+      const [platformRaw, ...rest] = body.split('|').map(s => s.trim());
+      const url = rest.join('|').trim();
+      const domainMap = {
+        'facebook': /href="https?:\/\/[^"]*facebook\.com[^"]*"/g,
+        'fb':       /href="https?:\/\/[^"]*facebook\.com[^"]*"/g,
+        'instagram': /href="https?:\/\/[^"]*instagram\.com[^"]*"/g,
+        'ig':        /href="https?:\/\/[^"]*instagram\.com[^"]*"/g,
+        'tiktok': /href="https?:\/\/[^"]*tiktok\.com[^"]*"/g,
+        'tt':     /href="https?:\/\/[^"]*tiktok\.com[^"]*"/g
+      };
+      const regex = domainMap[platformRaw?.toLowerCase()];
+
+      if (!regex || !url) {
+        await reply('⚠️ Формат:\n/соц facebook | https://...\n\nПлатформи: facebook, instagram, tiktok');
+        return res.status(200).json({ ok: true });
+      }
+
+      const file = await ghGet(GH, 'index.html');
+      let html = Buffer.from(file.content, 'base64').toString('utf-8');
+      const count = (html.match(regex) || []).length;
+      html = html.replace(regex, `href="${url}"`);
+      await ghPut(GH, 'index.html', html, file.sha, `Update ${platformRaw} link`);
+      await reply(`✅ ${platformRaw} линкът е обновен! (${count} места)\n<code>${url}</code>\n\nСайтът се обновява след ~1 мин.`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ГАЛЕРИЯ
+    // ══════════════════════════════════════════════════════════════════════════
+
     else if (/^\/(галерия|galeriya)/i.test(text)) {
       const files = await listGalleryFiles(GH);
       if (files.length === 0) {
         await reply('📂 Няма качени снимки засега.');
       } else {
         const list = files.map((f, i) => `${i + 1}. <code>${f.name}</code>`).join('\n');
-        await reply(`📸 <b>Качени снимки (${files.length}):</b>\n\n${list}\n\nЗа да изтриеш: /изтрий 1`);
+        await reply(`📸 <b>Снимки в галерията (${files.length}):</b>\n\n${list}\n\nЗа изтриване: /изтрий 1`);
       }
     }
 
-    // /изтрий 2 — изтрива снимка по номер
-    else if (/^\/(изтрий|iztrii)/i.test(text)) {
+    else if (/^\/(изтрий|iztrii)\s+\d/i.test(text)) {
       const num = parseInt(text.replace(/^\/(изтрий|iztrii)\s*/i, '').trim());
-
-      if (isNaN(num)) {
-        await reply('⚠️ Пиши номера на снимката:\n/изтрий 1\n\nВиж списъка с /галерия');
-        return res.status(200).json({ ok: true });
-      }
+      if (isNaN(num)) { await reply('⚠️ /изтрий 1\n\nВиж с /галерия'); return res.status(200).json({ ok: true }); }
 
       const files = await listGalleryFiles(GH);
       const file  = files[num - 1];
-
-      if (!file) {
-        await reply(`❌ Няма снимка с номер ${num}. Виж списъка с /галерия`);
-        return res.status(200).json({ ok: true });
-      }
+      if (!file) { await reply(`❌ Няма снимка ${num}. Виж с /галерия`); return res.status(200).json({ ok: true }); }
 
       await ghDelete(GH, file.name, file.sha, `Delete gallery image ${file.name}`);
+      await removeFromGallery(GH, file.name);
       await reply(`🗑 Снимка <code>${file.name}</code> е изтрита.\nСайтът се обновява след ~1 мин.`);
     }
 
-    // Видео файл
-    else if (msg.video) {
-      await reply('📹 За видео изпрати YouTube линк:\n/видео https://youtube.com/... | Описание');
-    }
-
-    else if (/^\/(видео|video)/i.test(text)) {
-      const body = text.replace(/^\/(видео|video)\s*/i, '');
-      const [url, ...rest] = body.split('|').map(s => s.trim());
-      const desc = rest.join('|').trim() || 'Видео';
-
-      if (!url) {
-        await reply('⚠️ Формат:\n/видео https://youtube.com/... | Описание');
-        return res.status(200).json({ ok: true });
-      }
-
-      await reply(`✅ Получих!\nURL: ${url}\nОписание: ${desc}\n\nФункцията за видео в сайта идва скоро.`);
-    }
+    // ══════════════════════════════════════════════════════════════════════════
+    // HELP
+    // ══════════════════════════════════════════════════════════════════════════
 
     else if (/^\/(start|help|старт|помощ)/i.test(text)) {
       await reply(
-        '🔧 <b>Команди за сайта:</b>\n\n' +
-        '📝 <b>Отзив:</b>\n/отзив Иван И. | Страхотна работа!\n\n' +
-        '💰 <b>Цена (в евро):</b>\n/цена седалки | 50\n/цена мокет | 40\n\n' +
-        '✏️ <b>Описание:</b>\n/описание седалки | Нов текст...\n\n' +
-        '➕ <b>Нова услуга:</b>\n/нова_услуга Полиране | 80 | Описание...\n\n' +
-        '📸 <b>Качи снимка:</b>\nИзпрати снимка директно\n\n' +
-        '📂 <b>Виж снимките:</b>\n/галерия\n\n' +
-        '🗑 <b>Изтрий снимка:</b>\n/изтрий 1\n\n' +
-        '📹 <b>Видео:</b>\n/видео https://youtube.com/... | Описание'
+        '🔧 <b>Команди за KOZR LAB:</b>\n\n' +
+
+        '━━ СЛАЙДЕРИ ПРЕДИ/СЛЕД ━━\n' +
+        '1️⃣ Изпрати снимка с надпис: /преди Задни седалки\n' +
+        '2️⃣ Изпрати втора снимка с надпис: /след\n' +
+        '📋 Виж: /слайдери\n' +
+        '🗑 Изтрий: /изтрий_слайдер 1\n' +
+        '❌ Отмени незавършен: /отмени_слайдер\n\n' +
+
+        '━━ ОТЗИВИ ━━\n' +
+        '📝 /отзив Иван И. | Страхотна работа!\n' +
+        '📋 /отзиви  🗑 /изтрий_отзив 1\n\n' +
+
+        '━━ УСЛУГИ ━━\n' +
+        '📋 Виж всички: /услуги\n' +
+        '✏️ /редактирай_услуга 1 | цена | 55\n' +
+        '✏️ /редактирай_услуга 1 | описание | Нов текст\n' +
+        '✏️ /редактирай_услуга 1 | наименование | Ново Наименование\n' +
+        '🖼 Смени снимка: изпрати снимка с надпис /снимка_услуга 1\n' +
+        '➕ /нова_услуга Полиране | 80 | Описание\n' +
+        '🗑 /изтрий_услуга 1\n\n' +
+
+        '━━ ТЕКСТОВЕ ━━\n' +
+        '🔤 /заглавие Чист интериор.<br><em>Без компромис.</em>\n' +
+        '💬 /слоган Идваме при вас с оборудване\n' +
+        '📍 /таг Варна и Варненско\n\n' +
+
+        '━━ КОНТАКТИ ━━\n' +
+        '📞 /телефон 088 654 3210\n' +
+        '🔗 /соц facebook | https://...\n' +
+        '   (facebook, instagram, tiktok)\n\n' +
+
+        '━━ МЕДИЯ ━━\n' +
+        '📸 Изпрати снимка (без надпис) → галерия\n' +
+        '📂 /галерия  🗑 /изтрий 1\n' +
+        '📹 Изпрати видео (макс 20MB) → видео секция\n' +
+        '📋 /видеа  🗑 /изтрий_видео 1'
       );
     }
 
     else {
-      await reply('Не разпознавам командата. Пиши /help.');
+      await reply('Не разпознавам командата. Пиши /help за всички команди.');
     }
 
   } catch (err) {

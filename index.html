@@ -95,7 +95,7 @@
         {"@type": "Review", "datePublished": "2025-06-15", "author": {"@type": "Person", "name": "D. Nikolova"}, "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"}, "reviewBody": "Аз и моята кола сме много доволни от прецизното почистване! Упоритата следа от инцидент с айрян на седалката ми вече я няма. Благодаря и за страхотното отношение."}
       ],
       "priceRange": "$$",
-      "sameAs": ["https://www.facebook.com/people/KOZR-LAB-Interior-Detailing-Varna/61574368934697/","https://www.instagram.com/kozr.lab/"]
+      "sameAs": ["https://www.facebook.com/people/KOZR-LAB-Interior-Detailing-Varna/61574368934697/","https://www.instagram.com/kozr.lab/","https://www.tiktok.com/@kozr.lab"]
     },
     {
       "@context": "https://schema.org",
@@ -527,6 +527,13 @@
       color: rgba(255,255,255,.6); background: #111;
     }
 
+    /* PHOTO GRID */
+    .pg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .pg-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); cursor: pointer; transition: opacity .2s; }
+    .pg-grid img:hover { opacity: .85; }
+    @media (min-width: 600px) { .pg-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 900px) { .pg-grid { grid-template-columns: repeat(4, 1fr); } }
+
     /* VIDEOS */
     .vid-row {
       display: grid;
@@ -843,75 +850,7 @@
       </header>
 
       <div class="svc-grid" role="list">
-
-        <article class="svc-card rev" role="listitem" data-svc="sedalki">
-          <div class="svc-photo">
-            <img src="sedalki.JPG" alt="Пране на автомобилни седалки" loading="lazy" width="600" height="400">
-          </div>
-          <div class="svc-body">
-            <div class="svc-title-row">
-              <h3 class="svc-name">Пране на седалки</h3>
-              <div class="svc-price"><span class="svc-price-eur"></span><span class="svc-price-bgn"></span></div>
-            </div>
-            <p class="svc-desc" data-svc-desc="sedalki">Дълбоко извличане на замърсявания, петна и алергени от тъканни и кожени седалки.</p>
-            <div class="svc-actions">
-              <button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button>
-              <button class="svc-book" aria-label="Запази услуга">Запази</button>
-            </div>
-          </div>
-        </article>
-
-        <article class="svc-card rev d1" role="listitem" data-svc="moket">
-          <div class="svc-photo">
-            <img src="moket.JPG" alt="Пране на мокет в автомобил" loading="lazy" width="600" height="400" style="object-position: center 20%;">
-          </div>
-          <div class="svc-body">
-            <div class="svc-title-row">
-              <h3 class="svc-name">Пране на мокет</h3>
-              <div class="svc-price"><span class="svc-price-eur"></span><span class="svc-price-bgn"></span></div>
-            </div>
-            <p class="svc-desc" data-svc-desc="moket">Пълно почистване на пода на автомобила с резултат като нов.</p>
-            <div class="svc-actions">
-              <button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button>
-              <button class="svc-book" aria-label="Запази услуга">Запази</button>
-            </div>
-          </div>
-        </article>
-
-        <article class="svc-card rev d2" role="listitem" data-svc="bagajnik">
-          <div class="svc-photo">
-            <img src="bagajnik.JPG" alt="Почистване на багажник на автомобил" loading="lazy" width="600" height="400">
-          </div>
-          <div class="svc-body">
-            <div class="svc-title-row">
-              <h3 class="svc-name">Почистване на багажник</h3>
-              <div class="svc-price"><span class="svc-price-eur"></span><span class="svc-price-bgn"></span></div>
-            </div>
-            <p class="svc-desc" data-svc-desc="bagajnik">Химическо чистене и освежаване на багажното пространство.</p>
-            <div class="svc-actions">
-              <button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button>
-              <button class="svc-book" aria-label="Запази услуга">Запази</button>
-            </div>
-          </div>
-        </article>
-
-        <article class="svc-card rev d3" role="listitem" data-svc="stelki">
-          <div class="svc-photo">
-            <img src="stelki.JPG" alt="Пране на автомобилни стелки" loading="lazy" width="600" height="400">
-          </div>
-          <div class="svc-body">
-            <div class="svc-title-row">
-              <h3 class="svc-name">Пране на стелки</h3>
-              <div class="svc-price"><span class="svc-price-eur"></span><span class="svc-price-bgn"></span></div>
-            </div>
-            <p class="svc-desc" data-svc-desc="stelki">Пране и дезинфекция на стелките с премахване на упорити петна.</p>
-            <div class="svc-actions">
-              <button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button>
-              <button class="svc-book" aria-label="Запази услуга">Запази</button>
-            </div>
-          </div>
-        </article>
-
+        <!-- Услугите се зареждат динамично от services.json -->
       </div>
     </div>
   </section>
@@ -969,6 +908,12 @@
           <div class="ba-cap">Багажник</div>
         </div>
 
+      </div>
+
+      <!-- СНИМКИ -->
+      <div id="photoGrid" style="display:none; margin-top:2.5rem;">
+        <p style="font-size:.75rem;font-weight:600;letter-spacing:.04em;color:rgba(255,255,255,.45);margin-bottom:1.25rem;">Снимки</p>
+        <div class="pg-grid"></div>
       </div>
 
       <!-- ВИДЕА -->
@@ -1154,6 +1099,10 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
                 Instagram
               </a>
+              <a href="https://www.tiktok.com/@kozr.lab" target="_blank" rel="noopener noreferrer" class="soc-btn" aria-label="KOZR LAB в TikTok">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
+                TikTok
+              </a>
             </div>
           </div>
         </div>
@@ -1189,11 +1138,7 @@
             <label class="f-lbl" for="f-svc">Желана услуга <span aria-hidden="true">*</span></label>
             <select class="f-sel" id="f-svc" name="service" required aria-required="true">
               <option value="" disabled selected>Изберете услуга</option>
-              <option value="Пране на седалки">Пране на седалки</option>
-              <option value="Пране на мокет">Пране на мокет</option>
-              <option value="Почистване на багажник">Почистване на багажник</option>
-              <option value="Пране на стелки">Пране на стелки</option>
-              <option value="Комплексно почистване">Комплексно почистване</option>
+              <!-- Опциите се зареждат динамично от services.json -->
             </select>
             <div class="f-price-hint" id="fPriceHint" aria-live="polite"></div>
           </div>
@@ -1232,6 +1177,7 @@
       <a href="tel:+359889232706">088 923 2706</a>
       <a href="https://www.facebook.com/people/KOZR-LAB-Interior-Detailing-Varna/61574368934697/" target="_blank" rel="noopener noreferrer">Facebook</a>
       <a href="https://www.instagram.com/kozr.lab/" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="https://www.tiktok.com/@kozr.lab" target="_blank" rel="noopener noreferrer">TikTok</a>
     </address>
     <hr class="footer-divider">
     <div class="footer-bottom">
@@ -1339,13 +1285,17 @@
 
   // SCROLL REVEAL
   const els = document.querySelectorAll('.rev');
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-    }, { threshold: 0.1, rootMargin: '0px 0px -36px 0px' });
-    els.forEach(el => io.observe(el));
+  window._revObserver = ('IntersectionObserver' in window)
+    ? new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); window._revObserver.unobserve(e.target); }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -36px 0px' })
+    : null;
+  if (window._revObserver) {
+    els.forEach(function(el) { window._revObserver.observe(el); });
   } else {
-    els.forEach(el => el.classList.add('in'));
+    els.forEach(function(el) { el.classList.add('in'); });
   }
 
   // HERO STATS — count-up + stagger entrance
@@ -1499,68 +1449,89 @@
     });
   }
 
-  Promise.all([
-    fetch('/prices.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
-    fetch('/descriptions.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
-    fetch('/services.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
-  ]).then(function(results) {
-    var prices = results[0], descs = results[1], extraSvcs = results[2];
-
-    if (extraSvcs && extraSvcs.length) {
+  fetch('/services.json?v=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .catch(function() { return []; })
+    .then(function(services) {
+      var delays = ['', ' d1', ' d2', ' d3', ' d4'];
       var grid = document.querySelector('.svc-grid');
-      extraSvcs.forEach(function(svc) {
+      var sel  = document.getElementById('f-svc');
+
+      services.forEach(function(svc, i) {
         var eur = Number(svc.price) || 0;
         var bgn = Math.round(eur * 1.95583);
-        var priceHtml = eur ? '<div class="svc-price has-price"><span class="svc-price-eur">' + eur + ' €</span><span class="svc-price-bgn">≈ ' + bgn + ' лв.</span></div>' : '<div class="svc-price"></div>';
+        var priceHtml = eur
+          ? '<div class="svc-price has-price"><span class="svc-price-eur">' + eur + ' €</span><span class="svc-price-bgn">≈ ' + bgn + ' лв.</span></div>'
+          : '<div class="svc-price"></div>';
+        var photoHtml = svc.photo
+          ? '<img src="' + svc.photo + '" alt="' + svc.name + '" loading="lazy" width="600" height="400">'
+          : '';
+
         var article = document.createElement('article');
-        article.className = 'svc-card rev';
+        article.className = 'svc-card rev' + (delays[i] || ' d4');
         article.setAttribute('role', 'listitem');
         article.setAttribute('data-svc', svc.id);
         article.innerHTML =
-          '<div class="svc-photo svc-photo-placeholder"></div>' +
+          (svc.photo ? '<div class="svc-photo">' + photoHtml + '</div>' : '') +
           '<div class="svc-body">' +
             '<div class="svc-title-row"><h3 class="svc-name">' + svc.name + '</h3>' + priceHtml + '</div>' +
             '<p class="svc-desc" data-svc-desc="' + svc.id + '">' + (svc.desc || '') + '</p>' +
-            '<div class="svc-actions"><button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button></div>' +
+            '<div class="svc-actions">' +
+              '<button class="svc-read-more" aria-label="Виж пълното описание">Виж повече ↓</button>' +
+              '<button class="svc-book" aria-label="Запази услуга">Запази</button>' +
+            '</div>' +
           '</div>';
         grid.appendChild(article);
-      });
-    }
-    Object.entries(prices).forEach(function([key, val]) {
-      if (!val) return;
-      var priceEl = document.querySelector('[data-svc="' + key + '"] .svc-price');
-      if (!priceEl) return;
-      var eur = Number(val);
-      var bgn = Math.round(eur * 1.95583);
-      priceEl.querySelector('.svc-price-eur').textContent = eur + ' €';
-      priceEl.querySelector('.svc-price-bgn').textContent = '≈ ' + bgn + ' лв.';
-      priceEl.classList.add('has-price');
-    });
-    Object.entries(descs).forEach(function([key, val]) {
-      if (!val) return;
-      var descEl = document.querySelector('[data-svc-desc="' + key + '"]');
-      if (descEl) descEl.textContent = val;
-    });
-    initReadMore();
-  });
+        if (window._revObserver) { window._revObserver.observe(article); }
+        else { article.classList.add('in'); }
 
-  // SERVICE CARD → FORM
-  const svcLabelMap = {
-    sedalki:  'Пране на седалки',
-    moket:    'Пране на мокет',
-    bagajnik: 'Почистване на багажник',
-    stelki:   'Пране на стелки'
-  };
-  const svcKeyMap = Object.fromEntries(Object.entries(svcLabelMap).map(([k,v]) => [v,k]));
+        // Добави опция в dropdown-а на формата
+        var opt = document.createElement('option');
+        opt.value = svc.name;
+        opt.textContent = svc.name;
+        sel.appendChild(opt);
+      });
+
+      initReadMore();
+
+      // Bind "Запази" бутони след динамичен render
+      document.querySelectorAll('.svc-book').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var label = btn.closest('.svc-card').querySelector('.svc-name')?.textContent?.trim();
+          if (label) pickService(label);
+          document.getElementById('contact').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(function() { document.getElementById('f-name')?.focus(); }, 500);
+        });
+      });
+    });
+
+  // PHOTO GALLERY
+  fetch('/gallery.json?v=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .catch(function() { return []; })
+    .then(function(photos) {
+      if (!photos.length) return;
+      var wrap = document.getElementById('photoGrid');
+      var grid = wrap.querySelector('.pg-grid');
+      photos.slice().reverse().forEach(function(filename) {
+        var img = document.createElement('img');
+        img.src = '/' + filename;
+        img.alt = 'Резултат от почистване';
+        img.loading = 'lazy';
+        grid.appendChild(img);
+      });
+      wrap.style.display = '';
+    });
 
   function updateFormPrice(label) {
-    const hint = document.getElementById('fPriceHint');
+    var hint = document.getElementById('fPriceHint');
     if (!hint) return;
-    const key  = svcKeyMap[label];
-    const card = key ? document.querySelector('.svc-card[data-svc="' + key + '"]')
-                     : Array.from(document.querySelectorAll('.svc-card')).find(c => c.querySelector('.svc-name')?.textContent?.trim() === label);
-    const eur  = card?.querySelector('.svc-price-eur')?.textContent?.trim();
-    const bgn  = card?.querySelector('.svc-price-bgn')?.textContent?.trim();
+    var card = Array.from(document.querySelectorAll('.svc-card')).find(function(c) {
+      return c.querySelector('.svc-name')?.textContent?.trim() === label;
+    });
+    var eur = card?.querySelector('.svc-price-eur')?.textContent?.trim();
+    var bgn = card?.querySelector('.svc-price-bgn')?.textContent?.trim();
     if (eur) {
       hint.innerHTML = 'Цена: <strong>' + eur + '</strong><span>' + (bgn || '') + '</span>';
       hint.classList.add('visible');
@@ -1575,29 +1546,11 @@
   });
 
   function pickService(value) {
-    const sel = document.getElementById('f-svc');
+    var sel = document.getElementById('f-svc');
     if (!sel) return;
-    const exists = Array.from(sel.options).some(o => o.value === value);
-    if (!exists) {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = value;
-      sel.appendChild(opt);
-    }
     sel.value = value;
     updateFormPrice(value);
   }
-
-  document.querySelectorAll('.svc-book').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const card  = btn.closest('.svc-card');
-      const key   = card.dataset.svc;
-      const label = svcLabelMap[key] || card.querySelector('.svc-name')?.textContent?.trim();
-      if (label) pickService(label);
-      document.getElementById('contact').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => document.getElementById('f-name')?.focus(), 500);
-    });
-  });
 </script>
 
 </body>
