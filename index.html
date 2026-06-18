@@ -973,6 +973,13 @@
               <source src="video_1781812155825.mp4" type="video/mp4">
             </video>
           </div>
+
+          <div class="vid-item rev">
+            <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+            <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване">
+              <source src="video_1781812333972.mp4" type="video/mp4">
+            </video>
+          </div>
         <div style="text-align:center;margin-top:1.25rem;">
           <button id="vidMoreBtn" onclick="(function(){var btn=document.getElementById('vidMoreBtn');var hidden=document.querySelectorAll('.vid-hidden-orig');var expanded=btn.dataset.expanded==='1';if(!expanded){document.querySelectorAll('#vidRow .vid-item[style*=\'display:none\']').forEach(function(el){el.style.display='';el.classList.add('vid-hidden-orig')});btn.dataset.expanded='1';btn.textContent='Скрий видеата';}else{document.querySelectorAll('.vid-hidden-orig').forEach(function(el){el.style.display='none';el.classList.remove('vid-hidden-orig')});btn.dataset.expanded='0';btn.textContent='Виж още видеа';}})()"
             style="background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);color:var(--white);padding:.75rem 1.75rem;border-radius:100px;font-family:var(--font);font-size:.875rem;font-weight:600;cursor:pointer;transition:background .2s">
