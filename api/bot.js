@@ -265,10 +265,10 @@ module.exports = async function handler(req, res) {
       let html = Buffer.from(htmlFile.content, 'base64').toString('utf-8');
       const slider = buildSliderItem(pending.beforeFile, afterFile, pending.caption);
 
-      // Вмъкни преди затварящия </div> на ba-wrap (маркирано от <!-- ВИДЕА -->)
+      // Вмъкни преди затварящия </div> на ba-wrap (маркирано от <!-- СНИМКИ -->)
       html = html.replace(
-        '\n      </div>\n\n      <!-- ВИДЕА -->',
-        '\n' + slider + '\n\n      </div>\n\n      <!-- ВИДЕА -->'
+        '\n      </div>\n\n      <!-- СНИМКИ -->',
+        '\n' + slider + '\n\n      </div>\n\n      <!-- СНИМКИ -->'
       );
 
       await ghPut(GH, 'index.html', html, htmlFile.sha, `Add before/after slider: ${pending.caption}`);
