@@ -487,9 +487,10 @@ module.exports = async function handler(req, res) {
       const htmlFile = await ghGet(GH, 'index.html');
       let html = Buffer.from(htmlFile.content, 'base64').toString('utf-8');
       const card = buildVideoItem(filename);
+      // Insert before the "Виж още" button — works whether vid-row is empty or not
       html = html.replace(
-        '\n        </div>\n        <div style="text-align:center',
-        '\n' + card + '\n        </div>\n        <div style="text-align:center'
+        '\n        <div style="text-align:center;margin-top:1.25rem;">',
+        '\n' + card + '\n        <div style="text-align:center;margin-top:1.25rem;">'
       );
       await ghPut(GH, 'index.html', html, htmlFile.sha, `Add video ${filename}`);
       await reply(`✅ Видеото е качено и добавено!\n📁 <code>${filename}</code>\n\nСайтът се обновява след ~1 мин.\nЗа списък: /видеа\nЗа изтриване: /изтрий_видео [число]`);
