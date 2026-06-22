@@ -1,5 +1,72 @@
+const crypto = require('node:crypto');
+
 const STAR = '<svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
-const REPO = 'delqnka/nika';
+const REPO       = 'delqnka/nika';
+const MEDIA_BASE = process.env.R2_PUBLIC_URL || 'https://media.portretino.com';
+
+// ── R2 (Cloudflare S3 API) — AWS Signature V4 ────────────────────────────────
+
+function _hmac(key, data) { return crypto.createHmac('sha256', key).update(data).digest(); }
+function _hash(data)      { return crypto.createHash('sha256').update(data).digest('hex'); }
+
+function _r2Sign(method, key, body, contentType) {
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKey = process.env.R2_ACCESS_KEY_ID;
+  const secretKey = process.env.R2_SECRET_ACCESS_KEY;
+  const bucket    = process.env.R2_BUCKET;
+  if (!accountId || !accessKey || !secretKey || !bucket) {
+    throw new Error('R2 env vars not configured (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET)');
+  }
+  const host    = `${accountId}.r2.cloudflarestorage.com`;
+  const region  = 'auto';
+  const service = 's3';
+  const now       = new Date();
+  const amzDate   = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.substring(0, 8);
+  const payloadHash = body ? _hash(body) : 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+  const canonicalUri = `/${bucket}/${encodeURIComponent(key).replace(/%2F/g, '/')}`;
+  const headers = { 'host': host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate };
+  if (contentType) headers['content-type'] = contentType;
+  const sortedNames    = Object.keys(headers).sort();
+  const canonicalHeaders = sortedNames.map(n => `${n}:${headers[n]}\n`).join('');
+  const signedHeaders    = sortedNames.join(';');
+  const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  const credentialScope  = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign     = ['AWS4-HMAC-SHA256', amzDate, credentialScope, _hash(canonicalRequest)].join('\n');
+  const kDate    = _hmac('AWS4' + secretKey, dateStamp);
+  const kRegion  = _hmac(kDate, region);
+  const kService = _hmac(kRegion, service);
+  const kSigning = _hmac(kService, 'aws4_request');
+  const signature = _hmac(kSigning, stringToSign).toString('hex');
+  const Authorization = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  return { url: `https://${host}${canonicalUri}`, headers: { ...headers, Authorization } };
+}
+
+async function r2Put(key, body, contentType = 'application/octet-stream') {
+  const { url, headers } = _r2Sign('PUT', key, body, contentType);
+  const res = await fetch(url, { method: 'PUT', headers, body });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`R2 PUT ${key} failed ${res.status}: ${t.substring(0, 200)}`);
+  }
+  return `${MEDIA_BASE}/${key}`;
+}
+
+async function r2Delete(key) {
+  const { url, headers } = _r2Sign('DELETE', key);
+  const res = await fetch(url, { method: 'DELETE', headers });
+  if (!res.ok && res.status !== 404) {
+    const t = await res.text();
+    throw new Error(`R2 DELETE ${key} failed ${res.status}: ${t.substring(0, 200)}`);
+  }
+}
+
+// Extract bare key from a media URL (or pass-through if already bare)
+function r2KeyFromUrl(src) {
+  if (!src) return src;
+  const i = src.lastIndexOf('/');
+  return i === -1 ? src : src.substring(i + 1);
+}
 
 
 async function tg(token, method, body) {
@@ -35,11 +102,10 @@ async function ghDelete(ghToken, path, sha, message) {
 }
 
 async function listGalleryFiles(ghToken) {
-  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/`, {
-    headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' }
-  });
-  const all = await res.json();
-  return Array.isArray(all) ? all.filter(f => f.name.startsWith('gallery_') && f.type === 'file') : [];
+  const f = await ghGet(ghToken, 'gallery.json');
+  if (!f?.content) return [];
+  const names = JSON.parse(Buffer.from(f.content, 'base64').toString('utf-8'));
+  return names.map(name => ({ name }));
 }
 
 // ── HTML builders ────────────────────────────────────────────────────────────
@@ -71,8 +137,8 @@ function buildSliderItem(beforeFile, afterFile, caption) {
   return `
         <div class="ba-item rev">
           <div class="ba-slider" aria-label="Сравнение преди и след — ${caption}">
-            <img class="ba-img" src="${beforeFile}" alt="Преди — ${caption}" loading="lazy" width="600" height="450">
-            <img class="ba-img ba-after" src="${afterFile}" alt="След — ${caption}" loading="lazy" width="600" height="450">
+            <img class="ba-img" src="${MEDIA_BASE}/${beforeFile}" alt="Преди — ${caption}" loading="lazy" width="600" height="450">
+            <img class="ba-img ba-after" src="${MEDIA_BASE}/${afterFile}" alt="След — ${caption}" loading="lazy" width="600" height="450">
             <div class="ba-div"></div>
             <div class="ba-handle">
               ${SVG_L}
@@ -90,7 +156,7 @@ function buildVideoItem(filename) {
           <div class="vid-item rev">
             <div class="vid-thumb"><canvas class="vid-thumb-img"></canvas><div class="vid-play-circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
             <video class="vid" playsinline muted loop controls preload="metadata" aria-label="Видео от почистване">
-              <source src="${filename}" type="video/mp4">
+              <source src="${MEDIA_BASE}/${filename}" type="video/mp4">
             </video>
           </div>`;
 }
@@ -118,28 +184,32 @@ function extractReviews(html) {
   return reviews;
 }
 
-// Returns [{index, caption, fullBlock}]
+// Returns [{index, caption, fullBlock, beforeKey, afterKey}]
 function extractSliders(html) {
   const sliders = [];
   const regex = /<div class="ba-item[^"]*"[^>]*>[\s\S]*?<div class="ba-cap">([^<]*)<\/div>\s*<\/div>/g;
   let match, i = 1;
   while ((match = regex.exec(html)) !== null) {
+    const block = match[0];
+    const imgs = [...block.matchAll(/<img[^>]+src="([^"]+)"/g)].map(m => r2KeyFromUrl(m[1]));
     sliders.push({
       index: i++,
       caption: match[1].trim(),
-      fullBlock: match[0]
+      fullBlock: block,
+      beforeKey: imgs[0] || null,
+      afterKey:  imgs[1] || null
     });
   }
   return sliders;
 }
 
-// Returns [{index, filename}]
+// Returns [{index, src, filename}] — src is the full URL in HTML, filename is the bare key
 function extractVideoSources(html) {
   const regex = /<source src="([^"]+)"\s+type="video\/mp4">/g;
   const videos = [];
   let match, i = 1;
   while ((match = regex.exec(html)) !== null) {
-    videos.push({ index: i++, filename: match[1] });
+    videos.push({ index: i++, src: match[1], filename: r2KeyFromUrl(match[1]) });
   }
   return videos;
 }
@@ -233,7 +303,7 @@ module.exports = async function handler(req, res) {
       }
 
       const filename = `ba_${Date.now()}_before.jpg`;
-      await ghPut(GH, filename, buf, null, `Upload before image: ${filename}`);
+      await r2Put(filename, buf, 'image/jpeg');
 
       // Запази pending state в GitHub
       const pendingData = JSON.stringify({ beforeFile: filename, caption });
@@ -265,7 +335,7 @@ module.exports = async function handler(req, res) {
       }
 
       const afterFile = `ba_${Date.now()}_after.jpg`;
-      await ghPut(GH, afterFile, buf, null, `Upload after image: ${afterFile}`);
+      await r2Put(afterFile, buf, 'image/jpeg');
 
       // Добави слайдера в index.html
       const htmlFile = await ghGet(GH, 'index.html');
@@ -330,6 +400,8 @@ module.exports = async function handler(req, res) {
 
       html = html.replace(slider.fullBlock, '');
       await ghPut(GH, 'index.html', html, file.sha, `Delete slider: ${slider.caption}`);
+      if (slider.beforeKey) await r2Delete(slider.beforeKey).catch(() => {});
+      if (slider.afterKey)  await r2Delete(slider.afterKey).catch(() => {});
       await reply(`🗑 Слайдерът <b>${slider.caption}</b> е изтрит.\nСайтът се обновява след ~1 мин.`);
     }
 
@@ -458,9 +530,11 @@ module.exports = async function handler(req, res) {
       if (!buf) { await reply('❌ Не успях да изтегля снимката.'); return res.status(200).json({ ok: true }); }
 
       const filename = `svc_${svc.id}_${Date.now()}.jpg`;
-      await ghPut(GH, filename, buf, null, `Service photo: ${svc.name}`);
+      await r2Put(filename, buf, 'image/jpeg');
+      const oldPhoto = svc.photo;
       svc.photo = filename;
       await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Update photo: ${svc.name}`);
+      if (oldPhoto && oldPhoto !== filename) await r2Delete(oldPhoto).catch(() => {});
       await reply(`✅ Снимката на <b>${svc.name}</b> е обновена!\nСайтът се обновява след ~1 мин.`);
     }
 
@@ -470,7 +544,7 @@ module.exports = async function handler(req, res) {
       const buf      = await downloadTgFile(BOT, photo.file_id);
       if (!buf) { await reply('❌ Не успях да изтегля снимката.'); return res.status(200).json({ ok: true }); }
       const filename = `gallery_${Date.now()}.jpg`;
-      await ghPut(GH, filename, buf, null, `Upload gallery image ${filename}`);
+      await r2Put(filename, buf, 'image/jpeg');
       await addToGallery(GH, filename);
       await reply(`✅ Снимката е качена и се вижда на сайта!\n📁 <code>${filename}</code>\n\nЗа списък: /галерия\nЗа изтриване: /изтрий [число]`);
     }
@@ -489,7 +563,7 @@ module.exports = async function handler(req, res) {
       }
 
       const filename = `video_${Date.now()}.mp4`;
-      await ghPut(GH, filename, buf, null, `Upload video ${filename}`);
+      await r2Put(filename, buf, 'video/mp4');
 
       const htmlFile = await ghGet(GH, 'index.html');
       let html = Buffer.from(htmlFile.content, 'base64').toString('utf-8');
@@ -527,7 +601,7 @@ module.exports = async function handler(req, res) {
       if (!video) { await reply(`❌ Няма видео ${num}. Виж с /видеа`); return res.status(200).json({ ok: true }); }
 
       // Find the exact vid-item block using div depth counting
-      const srcIdx = html.indexOf(`<source src="${video.filename}"`);
+      const srcIdx = html.indexOf(`<source src="${video.src}"`);
       if (srcIdx === -1) { await reply('❌ Видеото не е намерено в HTML.'); return res.status(200).json({ ok: true }); }
       const itemStart = html.lastIndexOf('<div class="vid-item', srcIdx);
       if (itemStart === -1) { await reply('❌ Грешка при намиране на блока.'); return res.status(200).json({ ok: true }); }
@@ -548,6 +622,7 @@ module.exports = async function handler(req, res) {
       const actualStart = itemStart > 0 && html[itemStart - 1] === '\n' ? itemStart - 1 : itemStart;
       html = html.substring(0, actualStart) + html.substring(itemEnd);
       await ghPut(GH, 'index.html', html, file.sha, `Delete video ${video.filename}`);
+      await r2Delete(video.filename).catch(() => {});
       await reply(`🗑 Видео <code>${video.filename}</code> е изтрито.\nСайтът се обновява след ~1 мин.`);
     }
 
@@ -670,6 +745,7 @@ module.exports = async function handler(req, res) {
 
       services.splice(num - 1, 1);
       await ghPut(GH, 'services.json', JSON.stringify(services, null, 2), sf.sha, `Delete service: ${svc.name}`);
+      if (svc.photo) await r2Delete(svc.photo).catch(() => {});
       await reply(`🗑 <b>${svc.name}</b> е изтрита.\nСайтът се обновява след ~1 мин.`);
     }
 
@@ -787,7 +863,7 @@ module.exports = async function handler(req, res) {
       const file  = files[num - 1];
       if (!file) { await reply(`❌ Няма снимка ${num}. Виж с /галерия`); return res.status(200).json({ ok: true }); }
 
-      await ghDelete(GH, file.name, file.sha, `Delete gallery image ${file.name}`);
+      await r2Delete(file.name).catch(() => {});
       await removeFromGallery(GH, file.name);
       await reply(`🗑 Снимка <code>${file.name}</code> е изтрита.\nСайтът се обновява след ~1 мин.`);
     }
