@@ -1,0 +1,29 @@
+{
+  "redirects": [
+    { "source": "/wp-admin/:path*",      "destination": "/404.html", "statusCode": 404 },
+    { "source": "/wp-login.php",         "destination": "/404.html", "statusCode": 404 },
+    { "source": "/wp-content/:path*",    "destination": "/404.html", "statusCode": 404 },
+    { "source": "/wp-includes/:path*",   "destination": "/404.html", "statusCode": 404 },
+    { "source": "/xmlrpc.php",           "destination": "/404.html", "statusCode": 404 },
+    { "source": "/administrator/:path*", "destination": "/404.html", "statusCode": 404 },
+    { "source": "/joomla/:path*",        "destination": "/404.html", "statusCode": 404 },
+    { "source": "/phpmyadmin/:path*",    "destination": "/404.html", "statusCode": 404 },
+    { "source": "/.env",                 "destination": "/404.html", "statusCode": 404 },
+    { "source": "/.env.:ext*",           "destination": "/404.html", "statusCode": 404 },
+    { "source": "/.git/:path*",          "destination": "/404.html", "statusCode": 404 },
+    { "source": "/.aws/:path*",          "destination": "/404.html", "statusCode": 404 },
+    { "source": "/config.json",          "destination": "/404.html", "statusCode": 404 },
+    { "source": "/server-status",        "destination": "/404.html", "statusCode": 404 }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options",        "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy",     "value": "geolocation=(), microphone=(), camera=()" }
+      ]
+    }
+  ]
+}

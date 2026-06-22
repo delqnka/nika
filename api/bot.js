@@ -191,6 +191,13 @@ async function removeFromGallery(GH, filename) {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).json({ ok: true });
 
+  // Reject anything not coming from Telegram with the configured secret.
+  // Set the same value via: setWebhook?url=...&secret_token=<TG_WEBHOOK_SECRET>
+  const SECRET = process.env.TG_WEBHOOK_SECRET;
+  if (SECRET && req.headers['x-telegram-bot-api-secret-token'] !== SECRET) {
+    return res.status(401).json({ ok: false });
+  }
+
   const BOT     = process.env.TELEGRAM_TOKEN;
   const GH      = process.env.GITHUB_TOKEN;
   const ALLOWED = Number(process.env.ALLOWED_CHAT_ID);
@@ -201,12 +208,12 @@ module.exports = async function handler(req, res) {
   const chatId = msg.chat.id;
   const text   = (msg.text || msg.caption || '').trim();
 
-  const reply = (t) => tg(BOT, 'sendMessage', { chat_id: chatId, text: t, parse_mode: 'HTML' });
-
+  // Silent ignore for unauthorized chats — no outbound Telegram API call.
   if (chatId !== ALLOWED) {
-    await reply('❌ Нямаш достъп.');
     return res.status(200).json({ ok: true });
   }
+
+  const reply = (t) => tg(BOT, 'sendMessage', { chat_id: chatId, text: t, parse_mode: 'HTML' });
 
   try {
 
