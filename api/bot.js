@@ -1,8 +1,9 @@
 const crypto = require('node:crypto');
 
 const STAR = '<svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
-const REPO       = 'delqnka/nika';
-const MEDIA_BASE = process.env.R2_PUBLIC_URL || 'https://media.portretino.com';
+const REPO          = 'delqnka/nika';
+const R2_KEY_PREFIX = 'compressed/';
+const MEDIA_BASE    = (process.env.R2_PUBLIC_URL || 'https://media.portretino.com') + '/' + R2_KEY_PREFIX.replace(/\/$/, '');
 
 // ── R2 (Cloudflare S3 API) — AWS Signature V4 ────────────────────────────────
 
@@ -43,21 +44,23 @@ function _r2Sign(method, key, body, contentType) {
 }
 
 async function r2Put(key, body, contentType = 'application/octet-stream') {
-  const { url, headers } = _r2Sign('PUT', key, body, contentType);
+  const fullKey = R2_KEY_PREFIX + key;
+  const { url, headers } = _r2Sign('PUT', fullKey, body, contentType);
   const res = await fetch(url, { method: 'PUT', headers, body });
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`R2 PUT ${key} failed ${res.status}: ${t.substring(0, 200)}`);
+    throw new Error(`R2 PUT ${fullKey} failed ${res.status}: ${t.substring(0, 200)}`);
   }
   return `${MEDIA_BASE}/${key}`;
 }
 
 async function r2Delete(key) {
-  const { url, headers } = _r2Sign('DELETE', key);
+  const fullKey = R2_KEY_PREFIX + key;
+  const { url, headers } = _r2Sign('DELETE', fullKey);
   const res = await fetch(url, { method: 'DELETE', headers });
   if (!res.ok && res.status !== 404) {
     const t = await res.text();
-    throw new Error(`R2 DELETE ${key} failed ${res.status}: ${t.substring(0, 200)}`);
+    throw new Error(`R2 DELETE ${fullKey} failed ${res.status}: ${t.substring(0, 200)}`);
   }
 }
 
