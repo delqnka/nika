@@ -1,10 +1,11 @@
+
+!.env.example
+# Environment & secrets — NEVER commit
+*.key
+*.pem
 .DS_Store
 .claude/
-
-# Environment & secrets — NEVER commit
 .env
 .env.*
-!.env.example
-*.pem
-*.key
+scripts/node_modules/
 secrets.json
