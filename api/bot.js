@@ -278,33 +278,6 @@ async function removeFromGallery(GH, filename) {
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
-  // Temporary, on-demand webhook diagnostic. It keeps the token server-side and
-  // writes only Telegram's status response to Vercel logs.
-  if (req.method === 'GET' && req.query?.diagnostic === 'webhook') {
-    try {
-      const info = await tg(process.env.TELEGRAM_TOKEN, 'getWebhookInfo', {});
-      console.log('Telegram webhook diagnostic:', JSON.stringify(info.result));
-    } catch (err) {
-      console.error('Telegram webhook diagnostic failed:', err.message);
-    }
-    return res.status(200).json({ ok: true });
-  }
-
-  // One-time recovery for a deleted Telegram webhook. This is removed again
-  // immediately after the webhook has been restored.
-  if (req.method === 'GET' && req.query?.diagnostic === 'repair-webhook') {
-    try {
-      const result = await tg(process.env.TELEGRAM_TOKEN, 'setWebhook', {
-        url: 'https://kozrlab.com/api/bot',
-        secret_token: process.env.TG_WEBHOOK_SECRET
-      });
-      console.log('Telegram webhook recovery:', JSON.stringify(result.result));
-    } catch (err) {
-      console.error('Telegram webhook recovery failed:', err.message);
-    }
-    return res.status(200).json({ ok: true });
-  }
-
   if (req.method !== 'POST') return res.status(200).json({ ok: true });
 
   // Reject anything not coming from Telegram with the configured secret.
