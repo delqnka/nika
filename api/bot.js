@@ -78,30 +78,46 @@ async function tg(token, method, body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(`Telegram ${method} failed: ${data.description || res.status}`);
+  }
+  return data;
 }
 
 async function ghGet(ghToken, path) {
   const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' }
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(`GitHub GET ${path} failed: ${data.message || res.status}`);
+  }
+  return data;
 }
 
 async function ghPut(ghToken, path, content, sha, message) {
-  await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'PUT',
     headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, content: Buffer.from(content).toString('base64'), ...(sha ? { sha } : {}) })
   });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(`GitHub PUT ${path} failed: ${data.message || res.status}`);
+  }
 }
 
 async function ghDelete(ghToken, path, sha, message) {
-  await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'DELETE',
     headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, sha })
   });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(`GitHub DELETE ${path} failed: ${data.message || res.status}`);
+  }
 }
 
 async function listGalleryFiles(ghToken) {
@@ -924,7 +940,12 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     console.error(err);
-    await reply('❌ Нещо се обърка. Опитай пак.');
+    const message = err.message || '';
+    if (message.startsWith('GitHub ')) {
+      await reply('❌ Промяната не е запазена. GitHub временно отказа заявката — опитай пак след малко.');
+    } else {
+      await reply('❌ Нещо се обърка. Опитай пак.');
+    }
   }
 
   return res.status(200).json({ ok: true });
